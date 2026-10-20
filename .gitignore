@@ -1,2 +1,50 @@
-docs/PLANNING
-# docs/ExplicitProblemStatement.MD
+# Build & Output Directories
+
+bin/
+obj/
+build/
+out/
+
+# Compiled Binaries & Executables
+
+*.exe
+*.out
+*.app
+othello
+othello.exe
+
+# Compiled Object Files & Libraries
+
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.dll
+
+# IDE & Editor Configuration Files
+
+.vscode/
+.idea/
+*.swp
+*~
+*.user
+*.suo
+
+# OS Generated Files
+
+.DS_Store
+Thumbs.db
+
+# CMake Generated Files (if building in-source)
+
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile.cmake
+
+# Game Saves / Local Test Log Outputs
+
+saves/.sav
+saves/.oth
+!saves/.gitkeep
