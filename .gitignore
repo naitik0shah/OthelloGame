@@ -48,3 +48,7 @@ Makefile.cmake
 saves/.sav
 saves/.oth
 !saves/.gitkeep
+
+# Custom
+
+Project_32_interimreport.pdf

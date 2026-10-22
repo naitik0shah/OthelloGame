@@ -1,85 +1,129 @@
-# Othello Architecture & Technical Specification
+# Othello Architecture & Technical Specification (v2)
 
-## 1. Core Data Models (`include/common.h`)
+## 0. Issues fixed from v1
 
-All core data structures and enums are centralized in `include/common.h` to ensure strict C17 type safety and clean modularity across all project files.
+| # | Issue in v1 | Fix |
+|---|---|---|
+| 1 | `const CellState board[8][8]` params: in C17 passing `CellState(*)[8]` to `const CellState(*)[8]` warns (`-pedantic`) | Validation takes `const GameState *` |
+| 2 | `cli_parse_command(input, GameState*)` can't report errors, signal quit, or return file lists for stats | Parsing split from execution: returns `ParsedCommand` |
+| 3 | `switch_turn` couldn't report a pass / game over, though the UI must show the "no moves" message | Returns `TurnStatus`; `check_game_over` returns `bool` |
+| 4 | Replay (`/`, `\`) and `load_game` need a board at step N, but no function existed | Added `rebuild_state_at()`, `init_game()` |
+| 5 | No winner / piece-count API (stats and game-over need it) | Added `count_pieces()`, `get_game_result()`, `GameResult` |
+| 6 | Raw key input, ANSI, mouse are not in standard C17 (PRD requires cursor jump per keystroke + mouse) | New `platform.h` layer (POSIX + Windows) |
+| 7 | Module numbering conflicts with TASKS.MD (4 vs 5 modules); UI owned by nobody; replay assigned to Validation | Single numbering below; replay lives in UI |
+| 8 | `ui_render_board` had no way to hide hints, show replay step, or map mouse clicks | `RenderOptions`, `ui_screen_to_cell()` |
+| 9 | `load/save` returned `bool`, so errors (missing vs corrupt vs illegal history) were indistinguishable | `StorageStatus` enum |
+| 10 | Passes, validation preconditions, derived fields (`valid_moves`), name length not documented | Documented in headers |
+| 11 | Direction table would be duplicated by Validation and Capture teams | Shared `DIRECTIONS` in `common.h` |
+
+## 1. Modules and owners
+
+| # | Module | Header | Source | Owners |
+|---|---|---|---|---|
+| 1 | CLI parsing & prompts | `cli.h` | `cli_input.c` | Akshar, Ojas |
+| 2 | Move validation & hints | `validation.h` | `move_validation.c` | Aniruddh, Maulik, Naitik |
+| 3 | Capture & state transitions | `capture.h` | `capture.c` | Aarav, Nishi, Prem |
+| 4 | UI rendering & replay | `ui.h` | `cli_render.c` | **unassigned** (TASKS.MD gives rendering to Module 1) |
+| 5 | Persistence & stats | `storage.h` | `save_load.c`, `stats.c` | Manthan, Yug |
+| 6 | Platform I/O (new) | `platform.h` | `platform_posix.c`, `platform_win.c` | **unassigned** |
+
+Dependency direction (no cycles): `ui → capture → validation → common`; `storage → capture`; `cli → common`; `main → everything`.
+
+## 2. Headers (all compile cleanly with `gcc -std=c17 -Wall -Wextra -pedantic`)
+
+### `include/common.h`
 
 ```c
 #ifndef COMMON_H
 #define COMMON_H
 
 #include <stdbool.h>
-#include <stdint.h>
+#include <stddef.h>
 
-#define BOARD_SIZE 8
-#define MAX_MOVES 60
-#define MAX_NAME_LEN 32
-#define MAX_PATH_LEN 256
+#define BOARD_SIZE     8
+#define MAX_MOVES      60   /* 64 squares - 4 initial pieces; passes are NOT recorded */
+#define MAX_NAME_LEN   32   /* 31 chars + '\0' */
+#define MAX_PATH_LEN   256
+#define NUM_DIRECTIONS 8
 
-// State of a single cell on the 8x8 board
-typedef enum {
-    CELL_EMPTY = 0,
-    CELL_BLACK = 1,
-    CELL_WHITE = 2
-} CellState;
+/* State of one board cell */
+typedef enum { CELL_EMPTY = 0, CELL_BLACK = 1, CELL_WHITE = 2 } CellState;
 
-// Player color assignment
-typedef enum {
-    PLAYER_BLACK = 1,
-    PLAYER_WHITE = 2
-} PlayerColor;
+/* Player colour. Values match CellState so (CellState)player is valid. */
+typedef enum { PLAYER_BLACK = 1, PLAYER_WHITE = 2 } PlayerColor;
 
-// Board coordinate (0-indexed: row 0..7, col 0..7)
+/* 0-indexed board coordinate. "a1" -> {row 0, col 0}, "e3" -> {row 2, col 4} */
+typedef struct { int row; int col; } Position;
+
+/* One recorded move (passes are not recorded; a pass is implied when two
+   consecutive records have the same player). */
+typedef struct { PlayerColor player; Position pos; } MoveRecord;
+
+/* Game metadata. Invariant: p1_color != p2_color. */
 typedef struct {
-    int row;
-    int col;
-} Position;
-
-// Single recorded move item
-typedef struct {
-    PlayerColor player;
-    Position pos;
-} MoveRecord;
-
-// Game Metadata
-typedef struct {
-    char player1_name[MAX_NAME_LEN];
-    char player2_name[MAX_NAME_LEN];
+    char        player1_name[MAX_NAME_LEN];
+    char        player2_name[MAX_NAME_LEN];
     PlayerColor p1_color;
     PlayerColor p2_color;
 } GameMeta;
 
-// Complete Game State container
+/* Complete game state */
 typedef struct {
-    CellState board[BOARD_SIZE][BOARD_SIZE];
-    bool valid_moves[BOARD_SIZE][BOARD_SIZE];
+    CellState   board[BOARD_SIZE][BOARD_SIZE];
+    bool        valid_moves[BOARD_SIZE][BOARD_SIZE]; /* derived; for current_turn; never saved */
     PlayerColor current_turn;
-    bool game_ended;
-    MoveRecord history[MAX_MOVES];
-    int move_count;
-    GameMeta meta;
+    bool        game_ended;
+    MoveRecord  history[MAX_MOVES];
+    int         move_count;                          /* 0..MAX_MOVES */
+    GameMeta    meta;
 } GameState;
 
-// Aggregated game statistics summary
+/* Outcome of a finished (or running) game */
+typedef enum {
+    RESULT_IN_PROGRESS = 0,
+    RESULT_BLACK_WIN,
+    RESULT_WHITE_WIN,
+    RESULT_TIE
+} GameResult;
+
+/* What happened when the turn was handed over (see switch_turn) */
+typedef enum {
+    TURN_SWITCHED = 0,      /* opponent moves next */
+    TURN_OPPONENT_PASSED,   /* opponent had no move; same player moves again */
+    TURN_GAME_OVER          /* nobody can move / board full */
+} TurnStatus;
+
+/* Top-level application mode */
+typedef enum { APP_MODE_MENU = 0, APP_MODE_PLAY, APP_MODE_VIEW } AppMode;
+
+/* Aggregated statistics over several saved games */
 typedef struct {
-    int total_games;
-    int black_wins;
-    int white_wins;
-    int ties;
+    int  total_games;                       /* finished games counted */
+    int  skipped_files;                     /* unreadable / corrupt / unfinished */
+    int  black_wins;
+    int  white_wins;
+    int  ties;
     char highest_scoring_player[MAX_NAME_LEN];
-    int max_score;
+    int  max_score;                         /* highest final piece count of any player */
 } StatsSummary;
 
-#endif // COMMON_H
+/* Shared direction table: N, NE, E, SE, S, SW, W, NW (row delta, col delta) */
+static const Position DIRECTIONS[NUM_DIRECTIONS] = {
+    {-1, 0}, {-1, 1}, {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}, {-1, -1}
+};
+
+static inline bool pos_in_bounds(Position p) {
+    return p.row >= 0 && p.row < BOARD_SIZE && p.col >= 0 && p.col < BOARD_SIZE;
+}
+static inline PlayerColor opponent_of(PlayerColor p) {
+    return (p == PLAYER_BLACK) ? PLAYER_WHITE : PLAYER_BLACK;
+}
+static inline CellState cell_of(PlayerColor p) { return (CellState)p; }
+
+#endif /* COMMON_H */
 ```
 
----
-
-## 2. Shared Module Function Interfaces
-
-### Module 1: CLI Input & Command Parsing (`include/cli.h`)
-
-*Assigned to: Akshar, Ojas*
+### `include/cli.h`
 
 ```c
 #ifndef CLI_H
@@ -87,21 +131,46 @@ typedef struct {
 
 #include "common.h"
 
-// Parse raw string command inputs (:n, :l, :s, :v, :h, :q)
-void cli_parse_command(const char *input, GameState *state);
+#define MAX_STAT_FILES 32
 
-// Prompt interactive player configuration if flags are omitted
-void cli_prompt_new_game(GameMeta *meta);
+typedef enum {
+    CMD_NONE = 0, CMD_NEW, CMD_LOAD, CMD_SAVE, CMD_VIEW,
+    CMD_STATS, CMD_HELP, CMD_QUIT, CMD_INVALID
+} CommandType;
 
-// Display top header, help menu, and command list
-void cli_render_help(void);
+typedef enum { WHITE_UNSET = 0, WHITE_IS_P1, WHITE_IS_P2 } WhiteChoice;
 
-#endif // CLI_H
+/* Result of parsing one ":..." line. Parsing never touches game state. */
+typedef struct {
+    CommandType type;
+    bool        has_p1, has_p2;
+    char        p1[MAX_NAME_LEN], p2[MAX_NAME_LEN];       /* :n -p1= -p2= */
+    WhiteChoice white;                                    /* :n -w=p1|p2 */
+    bool        has_path;
+    char        path[MAX_PATH_LEN];                       /* -f= for :l :s :v */
+    char        files[MAX_STAT_FILES][MAX_PATH_LEN];      /* :s <f1> <f2> ... */
+    int         file_count;
+    char        error[96];                                /* set when type == CMD_INVALID */
+} ParsedCommand;
+
+/* Parses ":n -p1=\"A\" -p2=\"B\" -w=p1", ":l -f=\"x\"", ... Returns false on syntax error
+   (out->type = CMD_INVALID, out->error filled). Names/paths longer than the limits are errors. */
+bool cli_parse_command(const char *input, ParsedCommand *out);
+
+/* Fills GameMeta from cmd, interactively prompting only for missing fields
+   (names; white player defaults to P2 when -w is absent). */
+void cli_prompt_new_game(const ParsedCommand *cmd, GameMeta *meta);
+
+/* "e3"/"E3" -> {2,4}. Returns false for anything else. */
+bool parse_position(const char *text, Position *out);
+
+/* {2,4} -> "e3" (out needs 3 bytes) */
+void position_to_string(Position pos, char out[3]);
+
+#endif /* CLI_H */
 ```
 
-### Module 2: Move Validation & Hinting (`include/validation.h`)
-
-*Assigned to: Aniruddh, Maulik, Naitik*
+### `include/validation.h`
 
 ```c
 #ifndef VALIDATION_H
@@ -109,21 +178,24 @@ void cli_render_help(void);
 
 #include "common.h"
 
-// Returns true if placing piece by `player` at `pos` is valid according to Othello rules
-bool validate_move(const CellState board[BOARD_SIZE][BOARD_SIZE], PlayerColor player, Position pos);
+/* Pure functions: read state->board only, never modify state.
+   (Takes const GameState* instead of const CellState[8][8]: in C17, passing
+   CellState(*)[8] to const CellState(*)[8] triggers incompatible-pointer warnings.) */
 
-// Populates the 8x8 boolean matrix `valid_out` with legal moves and returns valid move count
-int get_all_valid_moves(const CellState board[BOARD_SIZE][BOARD_SIZE], PlayerColor player, bool valid_out[BOARD_SIZE][BOARD_SIZE]);
+/* true iff pos is in bounds, EMPTY, and flips >= 1 opponent piece in >= 1 direction */
+bool validate_move(const GameState *state, PlayerColor player, Position pos);
 
-// Check if current player has any valid moves available
-bool has_any_valid_move(const CellState board[BOARD_SIZE][BOARD_SIZE], PlayerColor player);
+/* Fills valid_out (all 64 cells, false where illegal); returns legal-move count */
+int  get_all_valid_moves(const GameState *state, PlayerColor player,
+                         bool valid_out[BOARD_SIZE][BOARD_SIZE]);
 
-#endif // VALIDATION_H
+/* true iff player has at least one legal move */
+bool has_any_valid_move(const GameState *state, PlayerColor player);
+
+#endif /* VALIDATION_H */
 ```
 
-### Module 3: Piece Capturing & State Mutations (`include/capture.h`)
-
-*Assigned to: Aarav, Nishi, Prem*
+### `include/capture.h`
 
 ```c
 #ifndef CAPTURE_H
@@ -131,22 +203,39 @@ bool has_any_valid_move(const CellState board[BOARD_SIZE][BOARD_SIZE], PlayerCol
 
 #include "common.h"
 
-// Flips opposing pieces in all legal directions after a valid move placement
-// Returns total number of opponent pieces flipped
-int execute_move(GameState *state, Position pos);
+/* Reset to the standard start: D4=W, E4=B, D5=B, E5=W, Black to move, empty history.
+   Copies meta, then computes valid_moves. */
+void init_game(GameState *state, const GameMeta *meta);
 
-// Evaluates piece counts and checks game over condition
-void check_game_over(GameState *state);
+/* PRECONDITION: validate_move(state, state->current_turn, pos) is true.
+   Places the piece, flips captured pieces in all 8 directions, appends to history.
+   Does NOT switch turn. Returns number of flipped pieces. */
+int  execute_move(GameState *state, Position pos);
 
-// Switches player turn and updates valid move hints
-void switch_turn(GameState *state);
+/* Board full or neither player can move -> sets state->game_ended; returns it */
+bool check_game_over(GameState *state);
 
-#endif // CAPTURE_H
+/* Hands the turn over and refreshes valid_moves:
+   - opponent has a move        -> TURN_SWITCHED
+   - only current player can go -> turn stays, TURN_OPPONENT_PASSED
+   - nobody can move            -> game_ended = true, TURN_GAME_OVER */
+TurnStatus switch_turn(GameState *state);
+
+/* Piece counts */
+void count_pieces(const GameState *state, int *black, int *white);
+
+/* RESULT_IN_PROGRESS until game_ended; then compare counts (equal -> RESULT_TIE) */
+GameResult get_game_result(const GameState *state);
+
+/* Rebuild a state by replaying the first `step` moves of src->history
+   (0 <= step <= src->move_count). Used by load_game and replay mode.
+   Returns false if a recorded move is illegal. */
+bool rebuild_state_at(const GameState *src, int step, GameState *out);
+
+#endif /* CAPTURE_H */
 ```
 
-### Module 4: UI Engine & Board Rendering (`include/ui.h`)
-
-*Assigned to: Shared / UI Integration*
+### `include/ui.h`
 
 ```c
 #ifndef UI_H
@@ -154,21 +243,35 @@ void switch_turn(GameState *state);
 
 #include "common.h"
 
-// Redraws full terminal screen: Board + Move History side panel + Turn indicator
-void ui_render_board(const GameState *state, Position current_cursor);
+typedef struct {
+    Position cursor;
+    bool     show_hints;     /* draw '*' on legal moves (play mode only) */
+    int      replay_step;    /* -1 = live game; else step shown in replay */
+} RenderOptions;
 
-// Displays status bar messages (e.g., Red error text for invalid moves)
+/* Full redraw: board (A-H / 1-8), move-history side panel, turn indicator, scores */
+void ui_render_board(const GameState *state, const RenderOptions *opts);
+
+/* Status line under the history panel; is_error -> red ANSI text */
 void ui_display_status(const char *message, bool is_error);
 
-// Replay UI viewer mode navigation (/ for forward, \ for backward)
-void ui_view_replay(const GameState *state);
+void ui_render_welcome(void);
+void ui_render_help(void);
 
-#endif // UI_H
+/* Replay loop: '/' forward, '\' (or 'p') backward, ESC exits.
+   Uses rebuild_state_at(); `game` is never modified. */
+void ui_view_replay(const GameState *game);
+
+/* Mouse support: terminal cell -> board square. Returns false if outside the board. */
+bool ui_screen_to_cell(int screen_row, int screen_col, Position *out);
+
+/* Click on a history-panel entry -> its 0-based move index, or -1 */
+int  ui_screen_to_history_index(int screen_row, int screen_col, const GameState *state);
+
+#endif /* UI_H */
 ```
 
-### Module 5: Game Persistence & Statistics (`include/storage.h`)
-
-*Assigned to: Manthan, Yug*
+### `include/storage.h`
 
 ```c
 #ifndef STORAGE_H
@@ -176,108 +279,102 @@ void ui_view_replay(const GameState *state);
 
 #include "common.h"
 
-// Saves current game state to file path
-bool save_game(const GameState *state, const char *filepath);
+typedef enum {
+    STORAGE_OK = 0,
+    STORAGE_ERR_IO,            /* missing file / cannot open / write failed */
+    STORAGE_ERR_FORMAT,        /* header, field or move line malformed */
+    STORAGE_ERR_ILLEGAL_MOVE   /* history does not replay legally */
+} StorageStatus;
 
-// Loads game state from file path into state pointer
-bool load_game(GameState *state, const char *filepath);
+/* Text save format is defined in PRD.md section 5 */
+StorageStatus save_game(const GameState *state, const char *filepath);
 
-// Parses multiple game save files and prints aggregated statistics summary table
-void generate_stats_summary(const char * const filepaths[], int file_count);
+/* Board, turn, game_ended and valid_moves are reconstructed by replaying history */
+StorageStatus load_game(GameState *state, const char *filepath);
 
-#endif // STORAGE_H
+/* Aggregates finished games only; bad/unfinished files are counted in skipped_files.
+   Returns number of files successfully counted. */
+int  compute_stats_summary(const char *const filepaths[], int file_count, StatsSummary *out);
+
+/* Prints the summary table */
+void print_stats_summary(const StatsSummary *summary);
+
+const char *storage_status_str(StorageStatus status);
+
+#endif /* STORAGE_H */
 ```
 
----
+### `include/platform.h`
 
-## 3. System Data Flow Diagram
+```c
+#ifndef PLATFORM_H
+#define PLATFORM_H
+
+/* Raw key/mouse input and ANSI setup are NOT in the C17 standard library.
+   Implement in platform_posix.c (termios) and platform_win.c (Windows Console API,
+   VT processing enabled) behind this one interface. */
+
+typedef enum { EVT_NONE = 0, EVT_KEY, EVT_MOUSE_CLICK } EventType;
+
+#define KEY_ESC       27
+#define KEY_ENTER     '\n'
+#define KEY_BACKSPACE 127
+
+typedef struct {
+    EventType type;
+    int key;                      /* EVT_KEY: character code */
+    int screen_row, screen_col;   /* EVT_MOUSE_CLICK: 0-indexed terminal cell */
+} InputEvent;
+
+void       platform_init(void);        /* raw mode, hide cursor, enable mouse + ANSI */
+void       platform_shutdown(void);    /* restore terminal (also call from atexit) */
+InputEvent platform_read_event(void);  /* blocking */
+void       platform_clear_screen(void);
+
+#endif /* PLATFORM_H */
+```
+
+## 3. Behaviour contracts
+
+- **Coordinates**: `Position{row,col}` 0-indexed. Rank 1 = row 0, file A = col 0.
+- **Turn flow after a move**: `validate_move` → `execute_move` → `check_game_over`/`switch_turn` → UI shows message if `TURN_OPPONENT_PASSED` or result if `TURN_GAME_OVER`.
+- **Game-end check happens before input is accepted** (per design notes).
+- **Passes are not stored** in `history`; replay infers them from consecutive same-player records.
+- **`valid_moves`** is derived; recomputed by `init_game`, `switch_turn`, `rebuild_state_at`; never saved.
+- **Cursor, hint toggle, app mode** live in `main.c`, not in `GameState` (they are not game data).
+
+## 4. Data flow
 
 ```text
-                               +-----------------------+
-                               |  User Input Terminal  |
-                               +-----------------------+
-                                           |
-                            [Raw Input / Command String]
-                                           v
-                               +-----------------------+
-                               |      CLI Module       |
-                               | (Akshar, Ojas)        |
-                               |    (cli_input.c)      |
-                               +-----------------------+
-                                   /               \
-            [Command Mode: :n, :l, :s, :v]    [Move Input: e3 + Enter]
-                         /                           \
-                        v                             v
-           +-------------------------+   +-------------------------+
-           |     Storage Module      |   |    Validation Module    |
-           |    (Manthan, Yug)       |   | (Aniruddh,Maulik,Naitik)|
-           |   (save_load.c/stats.c) |   |   (move_validation.c)   |
-           | - Save / Load State     |   | - Validate cell target  |
-           | - Stats Aggregation     |   +-------------------------+
-           +-------------------------+            /         \
-                      |             [Invalid Move]           [Valid Move]
-             [State Restored]             /                     \
-                      |                  /                       v
-                      |                 /            +-----------------------+
-                      |                /             |    Capture Module     |
-                      |               /              |  (Aarav, Nishi, Prem) |
-                      |              /               |      (capture.c)      |
-                      |             /                | - Execute Captures    |
-                      |            /                 | - Record History      |
-                      |           /                  | - Switch Turn         |
-                      |          /                   +-----------------------+
-                      |         /                               |
-                      |        /                       [Turn Switched]
-                      |       /                                 |
-                      |      /                                  v
-                      |     /                        +-----------------------+
-                      |    /                         |   Validation Module   |
-                      |   /                          |  (move_validation.c)  |
-                      |  /                           | - Compute Valid Moves |
-                      | /                            |   Matrix (* hints)    |
-                      |/                             +-----------------------+
-                      v                                          |
-       +-------------------------------------------------------------------+
-       |                        UI Renderer Module                         |
-       |                       (cli_render.c / ui.h)                       |
-       |  - Draw 8x8 Board & Legal Hints (*)                               |
-       |  - Draw Move History Panel, Turn Info & Status/Error Messages     |
-       +-------------------------------------------------------------------+
+ platform_read_event()  (keys / mouse)
+          |
+          v
+ main loop (AppMode: MENU / PLAY / VIEW)
+   |-- ESC then ':' ... Enter --> cli_parse_command --> ParsedCommand
+   |       |-- NEW/LOAD/SAVE --> init_game / load_game / save_game   (Storage, Capture)
+   |       |-- STATS --> compute_stats_summary --> print_stats_summary
+   |       |-- VIEW  --> load_game --> ui_view_replay (uses rebuild_state_at)
+   |       '-- HELP/QUIT
+   |-- 'e3' / click --> parse_position / ui_screen_to_cell --> move cursor
+   '-- Enter --> validate_move
+            |-- invalid --> ui_display_status(red)
+            '-- valid   --> execute_move --> switch_turn --> TurnStatus
+                              (PASS msg | GAME_OVER result | normal)
+          |
+          v
+ ui_render_board(state, RenderOptions)
 ```
 
----
-
-## 4. File Structure
+## 5. File structure
 
 ```text
 OthelloGame/
-├── .gitignore                 # Git ignore rules for build outputs and temporary files
-├── ARCHITECTURE.MD            # Data structures, module APIs, and system specification
-├── CMakeLists.txt             # Modern CMake cross-platform build script
-├── Makefile                   # GNU Make build script for GCC / Clang / MinGW
-├── PRD.md                     # Product Requirements Document
-├── README.MD                  # Project setup, requirements, and controls guide
-├── TASKS.MD                   # Work breakdown and task list per team member
-│
-├── include/                   # Public header declarations
-│   ├── capture.h              # Module 3: Piece flipping logic & state transitions
-│   ├── cli.h                  # Module 1: CLI commands & input parsing interface
-│   ├── common.h               # Central data models, enums, constants, and GameState struct
-│   ├── storage.h              # Module 5: Save/load files & statistics summary interface
-│   ├── ui.h                   # Module 4: Screen rendering & replay viewer interface
-│   └── validation.h           # Module 2: Move validation & legal move generation interface
-│
-├── src/                       # Module implementations (.c source files)
-│   ├── capture.c              # Module 3: Raycasting capture logic & piece flipping execution
-│   ├── cli_input.c            # Module 1: Input parser for :n, :l, :s, :v, :q, and square jumps
-│   ├── cli_render.c           # Module 4: Board display, history side panel, color/cursor highlights
-│   ├── main.c                 # Application entry point & core event loop initialization
-│   ├── move_validation.c      # Module 2: Directional move validation & valid move array calculation
-│   ├── save_load.c            # Module 5: Serialization/deserialization for game state files
-│   └── stats.c                # Module 5: Multi-file stats parser & summary table generator
-│
-└── tests/                     # Automated unit testing suite
-    ├── test_capture.c         # Unit tests for multi-directional piece flipping
-    ├── test_storage.c         # Tests for file save/load operations
-    └── test_validation.c      # Unit tests for move rules and valid move generation
+├── ARCHITECTURE.MD  PRD.md  README.MD  TASKS.MD
+├── Makefile  CMakeLists.txt  .gitignore
+├── include/  common.h cli.h validation.h capture.h ui.h storage.h platform.h
+├── src/      main.c cli_input.c cli_render.c move_validation.c capture.c
+│             save_load.c stats.c platform_posix.c platform_win.c
+└── tests/    test_validation.c test_capture.c test_storage.c
 ```
+
+Build flags: `-std=c17 -Wall -Wextra -pedantic`; on POSIX add `-D_POSIX_C_SOURCE=200809L` (termios is not visible under strict C17 otherwise).
