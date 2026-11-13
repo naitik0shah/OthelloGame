@@ -1,28 +1,31 @@
-CC = gcc
-CFLAGS = -std=c17 -Wall -Wextra -Iinclude
-SRC_DIR = src
-OBJ_DIR = obj
-BIN_DIR = bin
+CC ?= cc
+CFLAGS ?= -std=c17 -Wall -Wextra -Wpedantic -O2
+CPPFLAGS ?= -Iinclude
+BUILD_DIR := out
+CORE_SRC := src/common.c src/validation_capture.c src/ui_cli_platform.c src/storage.c src/stats.c src/misc.c
+CORE_OBJ := $(CORE_SRC:src/%.c=$(BUILD_DIR)/%.o)
+TESTS := test_move_validation test_capture test_game_storage test_command_parser test_misc
 
-SRCS = $(wildcard $(SRC_DIR)/*.c)
-OBJS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
-TARGET = $(BIN_DIR)/othello
+.PHONY: all clean test
+all: $(BUILD_DIR)/othello
 
-.PHONY: all clean run dirs
+$(BUILD_DIR):
+	mkdir -p $@
 
-all: dirs $(TARGET)
+$(BUILD_DIR)/%.o: src/%.c include/common.h | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
-$(TARGET): $(OBJS)
+$(BUILD_DIR)/main.o: src/main.c include/common.h | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/othello: $(CORE_OBJ) $(BUILD_DIR)/main.o
 	$(CC) $(CFLAGS) $^ -o $@
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CFLAGS) -c $< -o $@
+$(BUILD_DIR)/%: tests/%.c $(CORE_OBJ) | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
 
-dirs:
-	@mkdir -p $(OBJ_DIR) $(BIN_DIR) saves
-
-run: all
-	./$(TARGET)
+test: $(TESTS:%=$(BUILD_DIR)/%)
+	@set -e; for t in $(TESTS); do ./$(BUILD_DIR)/$$t; done
 
 clean:
-	rm -rf $(OBJ_DIR) $(BIN_DIR)
+	rm -rf $(BUILD_DIR)/*
