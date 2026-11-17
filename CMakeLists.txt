@@ -15,7 +15,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(OTHELLO_SOURCES
     src/common.c
     src/validation_capture.c
-    src/ui_cli_platform.c
+    src/cli_platform.c
+    src/cli_render.c
+    src/cli_commands.c
     src/storage.c
     src/stats.c
     src/misc.c
