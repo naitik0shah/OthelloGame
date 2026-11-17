@@ -20,9 +20,6 @@ jobs:
             artifact: othello-windows-x86_64.exe
           - os: ubuntu-latest
             artifact: othello-linux-x86_64
-          - os: macos-latest
-            artifact: othello-macos-universal
-            cmake_flags: -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
 
     runs-on: ${{ matrix.os }}
     steps:

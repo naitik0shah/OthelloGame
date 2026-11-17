@@ -1,22 +1,21 @@
+#ifndef _WIN32
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #include "cli_internal.h"
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#ifndef _WIN32
-#define _POSIX_C_SOURCE 200809L
-#endif
-
 #ifdef _WIN32
 #include <windows.h>
 #else
+#include <sys/ioctl.h>
 #include <sys/select.h>
 #include <termios.h>
 #include <unistd.h>
-#endif
-#ifndef _WIN32
-#include <sys/ioctl.h>
 #endif
 
 /*
