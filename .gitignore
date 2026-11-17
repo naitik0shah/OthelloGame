@@ -1,53 +1,28 @@
-# Build & Output Directories
-
-bin/
-obj/
+# Build directories (CMake & Makefile)
 build/
 out/
+cmake-build-*/
 
-# Compiled Binaries & Executables
-
-*.exe
-*.out
-*.app
-othello
-othello.exe
-
-# Compiled Object Files & Libraries
-
+# Compiled objects, archives & executables
 *.o
 *.obj
 *.a
-*.so
-*.dylib
-*.dll
+*.lib
+*.exe
+*.out
+*.pdb
 
-# IDE & Editor Configuration Files
+# clangd index cache & compile database
+.cache/
+compile_commands.json
 
-.vscode/
-.idea/
-*.swp
-*~
-*.user
-*.suo
-.*
+# Runtime Othello save files (keep test fixtures inside tests/ if any)
+*.sav
+!tests/**/*.sav
 
-# OS Generated Files
-
+# OS & editor clutter
 .DS_Store
 Thumbs.db
-
-# CMake Generated Files (if building in-source)
-
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-Makefile.cmake
-
-# Game Saves / Local Test Log Outputs
-
-saves/.sav
-saves/.oth
-!saves/.gitkeep
-
-# Custom
+*.swp
+*.swo
+.vscode

@@ -169,7 +169,7 @@ Every function in `ui_cli_platform.c`, in order of appearance:
 
 ### Platform Initialization, Cleanup & Event Reading
 
-5. **`win32_hide_legacy_cursor()`** *(Windows)*: Hides the Win32 caret via `SetConsoleCursorInfo()` when VT sequences are unavailable.
+1. **`win32_hide_legacy_cursor()`** *(Windows)*: Hides the Win32 caret via `SetConsoleCursorInfo()` when VT sequences are unavailable.
 2. **`win32_clear_legacy_console()`** *(Windows)*: Fills the console buffer with spaces and homes the cursor via Win32 APIs when VT sequences are unavailable.
 3. **`get_terminal_size(cols_out, rows_out)`** *(Windows & POSIX)*: Queries live terminal columns and rows (falling back to `80×24`).
 4. **`input_ready(timeout_ms)`** *(POSIX)*: Uses `select()` to wait up to `timeout_ms` for input bytes, retrying on `EINTR`.
@@ -181,6 +181,7 @@ Every function in `ui_cli_platform.c`, in order of appearance:
 10. **`term_read_event()`** *(Windows & POSIX)*: Blocks for the next OS input event and returns a normalized `InputEvent`.
 
 ### Screen State, Layout & Frame Rendering
+
  1. **`set_status(a, is_error, fmt, ...)`**: Formats a status/error message into `a->status` using `vsnprintf()`.
  2. **`app_screen(a, prompt, text)`**: Builds a `Screen` snapshot from the current `App` state.
  3. **`screen_to_cell(row, col, out)`**: Converts screen `(row, col)` to 0-based board coordinates `(0..7, 0..7)`, returning `false` if outside the board.
@@ -196,6 +197,7 @@ Every function in `ui_cli_platform.c`, in order of appearance:
 13. **`render(screen)`**: Assembles the complete UI frame (welcome screen or active board + move history + piece tally + status + prompt + footer) and flushes it to the terminal.
 
 ### Command Parsing & Execution
+
  1. **`set_error(o, msg)`**: Sets `o->type = CMD_INVALID` and copies `msg` into `o->error`.
  2. **`tokenize(s, tok, err, err_size)`**: Splits a command line on whitespace while keeping `"quoted strings"` together and stripping quotes.
  3. **`take_name(value, dst, o)`**: Validates player name length (`1..31` chars) and copies it into `dst`.
@@ -207,6 +209,7 @@ Every function in `ui_cli_platform.c`, in order of appearance:
  9. **`run_command(a, line)`**: Parses `line` and dispatches the command (`init_game`, `load_game`, `save_game`, `view_replay`, `show_stats`, `show_help`, hint toggle, or quit).
 
 ### Full-Screen Sub-Views
+
  1. **`show_help(a)`**: Renders the full-screen controls/command reference and waits for a keypress.
  2. **`show_stats(a, paths, count)`**: Computes win/loss/tie statistics across save files via `compute_stats_summary()`, displays them, and waits for a keypress.
  3. **`view_replay(a, game, initial_step)`**: Runs an interactive step-by-step replay viewer supporting Left/Right stepping, multi-digit move-number jumps (`number = number * 10 + digit`), and `q`/`Esc` exit.

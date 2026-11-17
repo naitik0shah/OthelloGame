@@ -23,6 +23,16 @@ set(OTHELLO_SOURCES
     src/misc.c
 )
 add_library(othello_core STATIC ${OTHELLO_SOURCES})
+execute_process(
+    COMMAND git describe --tags --always --dirty
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+if(GIT_VERSION)
+    target_compile_definitions(othello_core PUBLIC OTHELLO_VERSION="${GIT_VERSION}")
+endif()
 add_executable(othello src/main.c)
 target_link_libraries(othello PRIVATE othello_core)
 

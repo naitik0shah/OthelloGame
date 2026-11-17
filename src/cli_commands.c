@@ -1,4 +1,12 @@
 #include "cli_internal.h"
+#include <assert.h>
+#include <ctype.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* Cross-module integration hook implemented in misc.c */
 bool prompt_new_game(App *a, const ParsedCommand *cmd, GameMeta *meta);
@@ -38,12 +46,14 @@ void set_error(ParsedCommand *o, const char *msg)
     snprintf(o->error, sizeof o->error, "%s", msg);
 }
 
-/* Splits on whitespace. Double quotes group text and are removed. Returns the token count, or -1 on error. */
+/* Splits on whitespace. Double quotes group text and are removed. Returns the
+ * token count, or -1 on error. */
 int tokenize(const char *s, char tok[][MAX_PATH_LEN], char *err, size_t err_size)
 {
     int n = 0;
     while (*s) {
-        while (isspace((unsigned char)*s)) s++;
+        while (isspace((unsigned char)*s))
+            s++;
         if (*s == '\0') break;
         if (n >= MAX_TOKENS) {
             snprintf(err, err_size, "too many arguments");
@@ -98,7 +108,8 @@ bool parse_command(const char *input, ParsedCommand *out)
     assert(input != NULL && out != NULL);
     memset(out, 0, sizeof *out);
 
-    while (isspace((unsigned char)*input)) input++;
+    while (isspace((unsigned char)*input))
+        input++;
     if (*input != ':') {
         set_error(out, "commands start with ':'");
         return false;
@@ -114,14 +125,22 @@ bool parse_command(const char *input, ParsedCommand *out)
 
     const char *cmd = tok[0];
     CommandType t;
-    if      (strcmp(cmd, ":n") == 0) t = CMD_NEW;
-    else if (strcmp(cmd, ":l") == 0) t = CMD_LOAD;
-    else if (strcmp(cmd, ":w") == 0) t = CMD_SAVE;
-    else if (strcmp(cmd, ":s") == 0) t = CMD_STATS;
-    else if (strcmp(cmd, ":v") == 0) t = CMD_VIEW;
-    else if (strcmp(cmd, ":h") == 0) t = CMD_HELP;
-    else if (strcmp(cmd, ":q") == 0) t = CMD_QUIT;
-    else if (strcmp(cmd, ":t") == 0) t = CMD_TOGGLE_HINTS;
+    if (strcmp(cmd, ":n") == 0)
+        t = CMD_NEW;
+    else if (strcmp(cmd, ":l") == 0)
+        t = CMD_LOAD;
+    else if (strcmp(cmd, ":w") == 0)
+        t = CMD_SAVE;
+    else if (strcmp(cmd, ":s") == 0)
+        t = CMD_STATS;
+    else if (strcmp(cmd, ":v") == 0)
+        t = CMD_VIEW;
+    else if (strcmp(cmd, ":h") == 0)
+        t = CMD_HELP;
+    else if (strcmp(cmd, ":q") == 0)
+        t = CMD_QUIT;
+    else if (strcmp(cmd, ":t") == 0)
+        t = CMD_TOGGLE_HINTS;
     else {
         set_error(out, "unknown command (type :h for help)");
         return false;
@@ -150,7 +169,8 @@ bool parse_command(const char *input, ParsedCommand *out)
                 return false;
             }
             const char *v = a + 3;
-            if (tolower((unsigned char)v[0]) != 'p' || (v[1] != '1' && v[1] != '2') || v[2] != '\0') {
+            if (tolower((unsigned char)v[0]) != 'p' || (v[1] != '1' && v[1] != '2') ||
+                v[2] != '\0') {
                 set_error(out, "-w= must be p1 or p2");
                 return false;
             }
@@ -216,8 +236,10 @@ bool parse_command(const char *input, ParsedCommand *out)
     }
 
     if (takes_single_path && out->path[0] == '\0' && t != CMD_VIEW) {
-        if (t == CMD_LOAD)      set_error(out, "usage: :l <file>");
-        else                    set_error(out, "usage: :w <file>");
+        if (t == CMD_LOAD)
+            set_error(out, "usage: :l <file>");
+        else
+            set_error(out, "usage: :w <file>");
         return false;
     }
     if (t == CMD_STATS && out->file_count == 0) {
@@ -228,7 +250,8 @@ bool parse_command(const char *input, ParsedCommand *out)
     return true;
 }
 
-/* Reads a line in the command bar. Enter accepts, Esc cancels (false), Ctrl-C/EOF quits. */
+/* Reads a line in the command bar. Enter accepts, Esc cancels (false),
+ * Ctrl-C/EOF quits. */
 bool edit_line(App *a, const char *prompt, char *buf, size_t size)
 {
     size_t len = 0;
@@ -309,10 +332,10 @@ void run_command(App *a, const char *line)
         }
         init_game(&a->game, &meta);
         a->have_game = true;
-        a->cursor = (Position){ BOARD_SIZE / 2 - 1, BOARD_SIZE / 2 - 1 };
-        set_status(a, false, "New game: %s (%s) vs %s (%s). Black moves first.",
-                   meta.player1_name, color_name(meta.p1_color),
-                   meta.player2_name, color_name(opponent_of(meta.p1_color)));
+        a->cursor = (Position){BOARD_SIZE / 2 - 1, BOARD_SIZE / 2 - 1};
+        set_status(a, false, "New game: %s (%s) vs %s (%s). Black moves first.", meta.player1_name,
+                   color_name(meta.p1_color), meta.player2_name,
+                   color_name(opponent_of(meta.p1_color)));
         break;
     }
     case CMD_LOAD: {
@@ -331,8 +354,10 @@ void run_command(App *a, const char *line)
             break;
         }
         const StorageStatus st = save_game(&a->game, cmd.path);
-        if (st == STORAGE_OK) set_status(a, false, "Saved to %s.", cmd.path);
-        else                  set_status(a, true, "Save failed: %s.", storage_status_str(st));
+        if (st == STORAGE_OK)
+            set_status(a, false, "Saved to %s.", cmd.path);
+        else
+            set_status(a, true, "Save failed: %s.", storage_status_str(st));
         break;
     }
     case CMD_VIEW: {
@@ -357,7 +382,8 @@ void run_command(App *a, const char *line)
     }
     case CMD_STATS: {
         const char *paths[MAX_STAT_FILES];
-        for (int i = 0; i < cmd.file_count; i++) paths[i] = cmd.files[i];
+        for (int i = 0; i < cmd.file_count; i++)
+            paths[i] = cmd.files[i];
         show_stats(a, paths, cmd.file_count);
         break;
     }
@@ -383,12 +409,8 @@ void show_help(App *a)
 
     buf[0] = '\0';
 
-    append_fmt(buf, sizeof buf, "%s%-*s%s%s\n",
-               cli_style_str(SGR_TITLE),
-               title_width,
-               "  OTHELLO - COMMAND & CONTROLS HELP",
-               cli_style_str(SGR_RESET),
-               eol);
+    append_fmt(buf, sizeof buf, "%s%-*s%s%s\n", cli_style_str(SGR_TITLE), title_width,
+               "  OTHELLO - COMMAND & CONTROLS HELP", cli_style_str(SGR_RESET), eol);
     rows_left--;
 
     if (rows_left > 1) {
@@ -396,90 +418,86 @@ void show_help(App *a)
         rows_left--;
     }
 
-    cli_append_wrapped_line(buf, sizeof buf,
-                            cli_style_str(SGR_TAG),
-                            "[1] SESSION COMMANDS (Any Mode)",
-                            cli_style_str(SGR_RESET), eol, cols, 0, &rows_left, true);
+    cli_append_wrapped_line(buf, sizeof buf, cli_style_str(SGR_TAG),
+                            "[1] SESSION COMMANDS (Any Mode)", cli_style_str(SGR_RESET), eol, cols,
+                            0, &rows_left, true);
     cli_append_wrapped_line(buf, sizeof buf, "",
-                            "  :n [p1] [p2] [w]   Start new game ('w' = P1 plays White; quotes allow spaces)",
+                            "  :n [p1] [p2] [w]   Start new game ('w' = P1 plays "
+                            "White; quotes allow spaces)",
                             "", eol, cols, 4, &rows_left, true);
     cli_append_wrapped_line(buf, sizeof buf, "",
-                            "  :l <file>          Load a saved game (e.g. :l game.sav)",
+                            "  :l <file>          Load a saved game (e.g. :l game.sav)", "", eol,
+                            cols, 4, &rows_left, true);
+    cli_append_wrapped_line(buf, sizeof buf, "",
+                            "  :v [file]          View current game moves (:v) "
+                            "or a saved game (:v game.sav)",
                             "", eol, cols, 4, &rows_left, true);
     cli_append_wrapped_line(buf, sizeof buf, "",
-                            "  :v [file]          View current game moves (:v) or a saved game (:v game.sav)",
+                            "  :s <f1> [f2...]    Show win/loss statistics "
+                            "across finished save files",
                             "", eol, cols, 4, &rows_left, true);
     cli_append_wrapped_line(buf, sizeof buf, "",
-                            "  :s <f1> [f2...]    Show win/loss statistics across finished save files",
+                            "  :t                 Toggle legal-move hints (*) on or off", "", eol,
+                            cols, 4, &rows_left, true);
+    cli_append_wrapped_line(buf, sizeof buf, "", "  :h                 Show this command reference",
                             "", eol, cols, 4, &rows_left, true);
-    cli_append_wrapped_line(buf, sizeof buf, "",
-                            "  :t                 Toggle legal-move hints (*) on or off",
-                            "", eol, cols, 4, &rows_left, true);
-    cli_append_wrapped_line(buf, sizeof buf, "",
-                            "  :h                 Show this command reference",
-                            "", eol, cols, 4, &rows_left, true);
-    cli_append_wrapped_line(buf, sizeof buf, "",
-                            "  :q                 Quit Othello",
-                            "", eol, cols, 4, &rows_left, true);
+    cli_append_wrapped_line(buf, sizeof buf, "", "  :q                 Quit Othello", "", eol, cols,
+                            4, &rows_left, true);
 
     if (rows_left > 1) {
         append_fmt(buf, sizeof buf, "%s\n", eol);
         rows_left--;
     }
 
-    cli_append_wrapped_line(buf, sizeof buf,
-                            cli_style_str(SGR_TAG),
-                            "[2] BOARD PLAY CONTROLS (Active Game)",
-                            cli_style_str(SGR_RESET), eol, cols, 0, &rows_left, true);
+    cli_append_wrapped_line(buf, sizeof buf, cli_style_str(SGR_TAG),
+                            "[2] BOARD PLAY CONTROLS (Active Game)", cli_style_str(SGR_RESET), eol,
+                            cols, 0, &rows_left, true);
     cli_append_wrapped_line(buf, sizeof buf, "",
-                            "  Arrow keys         Move cursor (Up / Down / Left / Right)",
-                            "", eol, cols, 4, &rows_left, true);
+                            "  Arrow keys         Move cursor (Up / Down / Left / Right)", "", eol,
+                            cols, 4, &rows_left, true);
     cli_append_wrapped_line(buf, sizeof buf, "",
-                            "  a-h, 1-8           Jump directly to column (a-h) or row (1-8)",
-                            "", eol, cols, 4, &rows_left, true);
+                            "  a-h, 1-8           Jump directly to column (a-h) or row (1-8)", "",
+                            eol, cols, 4, &rows_left, true);
     cli_append_wrapped_line(buf, sizeof buf, "",
-                            "  Enter / Space      Place a piece on the selected square",
-                            "", eol, cols, 4, &rows_left, true);
+                            "  Enter / Space      Place a piece on the selected square", "", eol,
+                            cols, 4, &rows_left, true);
     cli_append_wrapped_line(buf, sizeof buf, "",
                             "  Mouse              Hover to move cursor; left-click to place piece",
                             "", eol, cols, 4, &rows_left, true);
     cli_append_wrapped_line(buf, sizeof buf, "",
-                            "  :w <file>          Save current game (e.g. :w game.sav)",
-                            "", eol, cols, 4, &rows_left, true);
+                            "  :w <file>          Save current game (e.g. :w game.sav)", "", eol,
+                            cols, 4, &rows_left, true);
 
     if (rows_left > 1) {
         append_fmt(buf, sizeof buf, "%s\n", eol);
         rows_left--;
     }
 
-    cli_append_wrapped_line(buf, sizeof buf,
-                            cli_style_str(SGR_TAG),
-                            "[3] COMMAND LINE & REPLAY CONTROLS",
-                            cli_style_str(SGR_RESET), eol, cols, 0, &rows_left, true);
+    cli_append_wrapped_line(buf, sizeof buf, cli_style_str(SGR_TAG),
+                            "[3] COMMAND LINE & REPLAY CONTROLS", cli_style_str(SGR_RESET), eol,
+                            cols, 0, &rows_left, true);
     cli_append_wrapped_line(buf, sizeof buf, "",
-                            "  :                  Open command input (Enter execute | Backspace edit | Esc cancel)",
+                            "  :                  Open command input (Enter "
+                            "execute | Backspace edit | Esc cancel)",
                             "", eol, cols, 4, &rows_left, true);
     cli_append_wrapped_line(buf, sizeof buf, "",
-                            "  Left arrow         Step backward one move in replay",
-                            "", eol, cols, 4, &rows_left, true);
+                            "  Left arrow         Step backward one move in replay", "", eol, cols,
+                            4, &rows_left, true);
     cli_append_wrapped_line(buf, sizeof buf, "",
-                            "  Right / Space      Step forward one move in replay",
-                            "", eol, cols, 4, &rows_left, true);
+                            "  Right / Space      Step forward one move in replay", "", eol, cols,
+                            4, &rows_left, true);
     cli_append_wrapped_line(buf, sizeof buf, "",
-                            "  0-60 + Enter       Jump directly to move number in replay",
-                            "", eol, cols, 4, &rows_left, true);
-    cli_append_wrapped_line(buf, sizeof buf, "",
-                            "  q / Esc            Exit replay mode",
-                            "", eol, cols, 4, &rows_left, true);
+                            "  0-60 + Enter       Jump directly to move number in replay", "", eol,
+                            cols, 4, &rows_left, true);
+    cli_append_wrapped_line(buf, sizeof buf, "", "  q / Esc            Exit replay mode", "", eol,
+                            cols, 4, &rows_left, true);
 
     if (rows_left > 1) {
         append_fmt(buf, sizeof buf, "%s\n", eol);
         rows_left--;
     }
 
-    cli_append_wrapped_line(buf, sizeof buf,
-                            cli_style_str(SGR_OK),
-                            "Press any key to return...",
+    cli_append_wrapped_line(buf, sizeof buf, cli_style_str(SGR_OK), "Press any key to return...",
                             cli_style_str(SGR_RESET), eol, cols, 0, &rows_left, false);
 
     cli_flush_terminal_frame(buf);
@@ -504,12 +522,8 @@ void show_stats(App *a, const char *const paths[], int count)
 
     buf[0] = '\0';
 
-    append_fmt(buf, sizeof buf, "%s%-*s%s%s\n",
-               cli_style_str(SGR_TITLE),
-               title_width,
-               "  OTHELLO - MATCH STATISTICS",
-               cli_style_str(SGR_RESET),
-               eol);
+    append_fmt(buf, sizeof buf, "%s%-*s%s%s\n", cli_style_str(SGR_TITLE), title_width,
+               "  OTHELLO - MATCH STATISTICS", cli_style_str(SGR_RESET), eol);
     rows_left--;
 
     if (rows_left > 1) {
@@ -517,15 +531,15 @@ void show_stats(App *a, const char *const paths[], int count)
         rows_left--;
     }
 
-    cli_append_wrapped_line(buf, sizeof buf,
-                            cli_style_str(SGR_TAG),
-                            "[GAME STATISTICS SUMMARY]",
+    cli_append_wrapped_line(buf, sizeof buf, cli_style_str(SGR_TAG), "[GAME STATISTICS SUMMARY]",
                             cli_style_str(SGR_RESET), eol, cols, 0, &rows_left, true);
 
     snprintf(line, sizeof line, "  Finished games counted : %d", sum.total_games);
     cli_append_wrapped_line(buf, sizeof buf, "", line, "", eol, cols, 4, &rows_left, true);
 
-    snprintf(line, sizeof line, "  Files skipped          : %d (unreadable, corrupt, or unfinished)", sum.skipped_files);
+    snprintf(line, sizeof line,
+             "  Files skipped          : %d (unreadable, corrupt, or unfinished)",
+             sum.skipped_files);
     cli_append_wrapped_line(buf, sizeof buf, "", line, "", eol, cols, 4, &rows_left, true);
 
     snprintf(line, sizeof line, "  Black wins             : %d", sum.black_wins);
@@ -538,8 +552,8 @@ void show_stats(App *a, const char *const paths[], int count)
     cli_append_wrapped_line(buf, sizeof buf, "", line, "", eol, cols, 4, &rows_left, true);
 
     if (sum.total_games > 0) {
-        snprintf(line, sizeof line, "  Highest score          : %d (%s)",
-                 sum.max_score, sum.highest_scoring_player);
+        snprintf(line, sizeof line, "  Highest score          : %d (%s)", sum.max_score,
+                 sum.highest_scoring_player);
     } else {
         snprintf(line, sizeof line, "  Highest score          : -");
     }
@@ -550,14 +564,13 @@ void show_stats(App *a, const char *const paths[], int count)
         rows_left--;
     }
 
-    cli_append_wrapped_line(buf, sizeof buf,
-                            cli_style_str(SGR_OK),
-                            "Press any key to return...",
+    cli_append_wrapped_line(buf, sizeof buf, cli_style_str(SGR_OK), "Press any key to return...",
                             cli_style_str(SGR_RESET), eol, cols, 0, &rows_left, false);
 
     cli_flush_terminal_frame(buf);
     wait_key(a);
-    set_status(a, false, "Statistics: %d game(s) counted, %d skipped.", sum.total_games, sum.skipped_files);
+    set_status(a, false, "Statistics: %d game(s) counted, %d skipped.", sum.total_games,
+               sum.skipped_files);
 }
 
 void view_replay(App *a, const GameState *game, int initial_step)
@@ -578,16 +591,23 @@ void view_replay(App *a, const GameState *game, int initial_step)
         snprintf(tag, sizeof tag, "REPLAY  move %d / %d", step, game->move_count);
         char status_line[96];
         if (number >= 0) {
-            snprintf(status_line, sizeof status_line, "Jump to move: %d (press Enter to jump, Esc to clear)", number);
+            snprintf(status_line, sizeof status_line,
+                     "Jump to move: %d (press Enter to jump, Esc to clear)", number);
         } else {
-            snprintf(status_line, sizeof status_line, "Viewing move %d of %d.", step, game->move_count);
+            snprintf(status_line, sizeof status_line, "Viewing move %d of %d.", step,
+                     game->move_count);
         }
-        Screen s = {
-            .state = &cur, .cursor = { 0, 0 }, .show_cursor = false, .hints = false,
-            .tag = tag, .status = status_line, .status_error = false,
-            .input_prompt = NULL, .input_text = NULL,
-            .help = "Left back | Right/Space forward | digits + Enter jump | q/Esc exit"
-        };
+        Screen s = {.state = &cur,
+                    .cursor = {0, 0},
+                    .show_cursor = false,
+                    .hints = false,
+                    .tag = tag,
+                    .status = status_line,
+                    .status_error = false,
+                    .input_prompt = NULL,
+                    .input_text = NULL,
+                    .help = "Left back | Right/Space forward | digits + Enter jump "
+                            "| q/Esc exit"};
         render(&s);
 
         const InputEvent ev = term_read_event();
@@ -596,8 +616,10 @@ void view_replay(App *a, const GameState *game, int initial_step)
             break;
         }
         if (ev.kind == EV_ESC) {
-            if (number >= 0) number = -1;
-            else break;
+            if (number >= 0)
+                number = -1;
+            else
+                break;
             continue;
         }
         if (ev.kind == EV_CHAR && (ev.ch == 'q' || ev.ch == 'Q')) break;
@@ -612,7 +634,7 @@ void view_replay(App *a, const GameState *game, int initial_step)
             continue;
         }
         const bool back = (ev.kind == EV_LEFT);
-        const bool fwd  = (ev.kind == EV_RIGHT) || (ev.kind == EV_CHAR && ev.ch == ' ');
+        const bool fwd = (ev.kind == EV_RIGHT) || (ev.kind == EV_CHAR && ev.ch == ' ');
         if (ev.kind == EV_ENTER) {
             if (number >= 0) {
                 step = clamp_int(number, 0, game->move_count);

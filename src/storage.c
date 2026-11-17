@@ -1,20 +1,28 @@
 // ===== GAME PERSISTENCE / FILE MANAGEMENT TASK =====
 #include "common.h"
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-char color_char(PlayerColor c) {
+char color_char(PlayerColor c)
+{
     return c == PLAYER_BLACK ? 'B' : 'W';
 }
 
-/* Writes to <path>.tmp and renames, so a failed save never leaves a truncated file. */
-StorageStatus save_game(const GameState *s, const char *path) {
+/* Writes to <path>.tmp and renames, so a failed save never leaves a truncated
+ * file. */
+StorageStatus save_game(const GameState *s, const char *path)
+{
     char tmp[MAX_PATH_LEN + 8];
     snprintf(tmp, sizeof tmp, "%s.tmp", path);
 
     FILE *f = fopen(tmp, "w");
     if (!f) return STORAGE_ERR_IO;
 
-    fprintf(f, "OTHELLO 1\nP1=%s\nP2=%s\nP1COLOR=%c\nMOVES=%d\n",
-            s->meta.player1_name, s->meta.player2_name, color_char(s->meta.p1_color), s->move_count);
+    fprintf(f, "OTHELLO 1\nP1=%s\nP2=%s\nP1COLOR=%c\nMOVES=%d\n", s->meta.player1_name,
+            s->meta.player2_name, color_char(s->meta.p1_color), s->move_count);
     for (int i = 0; i < s->move_count; i++) {
         char sq[3];
         position_to_string(s->history[i].pos, sq);
@@ -28,7 +36,7 @@ StorageStatus save_game(const GameState *s, const char *path) {
     }
 
     if (rename(tmp, path) != 0) {
-        remove(path);                   /* Windows: rename fails when the target exists */
+        remove(path); /* Windows: rename fails when the target exists */
         if (rename(tmp, path) != 0) {
             remove(tmp);
             return STORAGE_ERR_IO;
@@ -37,8 +45,10 @@ StorageStatus save_game(const GameState *s, const char *path) {
     return STORAGE_OK;
 }
 
-/* Reads one line and checks that it starts with `key`. On success, *value points into `line`. */
-bool read_field(FILE *f, const char *key, char *line, size_t size, const char **value) {
+/* Reads one line and checks that it starts with `key`. On success, *value
+ * points into `line`. */
+bool read_field(FILE *f, const char *key, char *line, size_t size, const char **value)
+{
     if (!fgets(line, (int)size, f)) return false;
     line[strcspn(line, "\r\n")] = '\0';
     const size_t k = strlen(key);
@@ -48,7 +58,8 @@ bool read_field(FILE *f, const char *key, char *line, size_t size, const char **
 }
 
 /* All-or-nothing: *state changes only when the result is STORAGE_OK. */
-StorageStatus load_game(GameState *state, const char *path) {
+StorageStatus load_game(GameState *state, const char *path)
+{
     FILE *f = fopen(path, "r");
     if (!f) return STORAGE_ERR_IO;
 
@@ -69,9 +80,12 @@ StorageStatus load_game(GameState *state, const char *path) {
     snprintf(src.meta.player2_name, sizeof src.meta.player2_name, "%s", v);
 
     if (!read_field(f, "P1COLOR=", line, sizeof line, &v)) goto done;
-    if (strcmp(v, "B") == 0)      src.meta.p1_color = PLAYER_BLACK;
-    else if (strcmp(v, "W") == 0) src.meta.p1_color = PLAYER_WHITE;
-    else goto done;
+    if (strcmp(v, "B") == 0)
+        src.meta.p1_color = PLAYER_BLACK;
+    else if (strcmp(v, "W") == 0)
+        src.meta.p1_color = PLAYER_WHITE;
+    else
+        goto done;
 
     if (!read_field(f, "MOVES=", line, sizeof line, &v)) goto done;
     const long n = strtol(v, &end, 10);
@@ -82,11 +96,14 @@ StorageStatus load_game(GameState *state, const char *path) {
         if (!fgets(line, sizeof line, f)) goto done;
         line[strcspn(line, "\r\n")] = '\0';
         if (strlen(line) != 4 || line[2] != ' ') goto done;
-        const char sq[3] = { line[0], line[1], '\0' };
+        const char sq[3] = {line[0], line[1], '\0'};
         if (!parse_position(sq, &src.history[i].pos)) goto done;
-        if (line[3] == 'B')      src.history[i].player = PLAYER_BLACK;
-        else if (line[3] == 'W') src.history[i].player = PLAYER_WHITE;
-        else goto done;
+        if (line[3] == 'B')
+            src.history[i].player = PLAYER_BLACK;
+        else if (line[3] == 'W')
+            src.history[i].player = PLAYER_WHITE;
+        else
+            goto done;
     }
 
     if (!rebuild_state_at(&src, src.move_count, &rebuilt)) {
@@ -101,12 +118,17 @@ done:
     return st;
 }
 
-const char *storage_status_str(StorageStatus st) {
+const char *storage_status_str(StorageStatus st)
+{
     switch (st) {
-    case STORAGE_OK:               return "OK";
-    case STORAGE_ERR_IO:           return "cannot open/read/write the file";
-    case STORAGE_ERR_FORMAT:       return "file is not a valid Othello save";
-    case STORAGE_ERR_ILLEGAL_MOVE: return "saved moves are not a legal game";
+    case STORAGE_OK:
+        return "OK";
+    case STORAGE_ERR_IO:
+        return "cannot open/read/write the file";
+    case STORAGE_ERR_FORMAT:
+        return "file is not a valid Othello save";
+    case STORAGE_ERR_ILLEGAL_MOVE:
+        return "saved moves are not a legal game";
     }
     return "unknown error";
 }

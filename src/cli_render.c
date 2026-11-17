@@ -1,15 +1,20 @@
 #include "cli_internal.h"
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /*
  * High-level UI modes inferred from the Screen snapshot so that context-aware
  * instructions appear where the user needs them most.
  */
 typedef enum {
-    UI_MODE_WELCOME,        /* No active game loaded yet */
-    UI_MODE_COMMAND_INPUT,  /* User is typing a ':' command */
-    UI_MODE_ACTIVE_PLAY,    /* Game in progress; board accepts moves */
-    UI_MODE_REPLAY,         /* Read-only replay mode (:v) */
-    UI_MODE_POST_GAME       /* Game finished */
+    UI_MODE_WELCOME,       /* No active game loaded yet */
+    UI_MODE_COMMAND_INPUT, /* User is typing a ':' command */
+    UI_MODE_ACTIVE_PLAY,   /* Game in progress; board accepts moves */
+    UI_MODE_REPLAY,        /* Read-only replay mode (:v) */
+    UI_MODE_POST_GAME      /* Game finished */
 } UiMode;
 
 /*
@@ -21,7 +26,8 @@ typedef enum {
 Screen app_screen(const App *a, const char *prompt, const char *text)
 {
     static const char *const PLAY_HELP =
-        "Arrows move  a-h,1-8 jump  Enter/click place  :v view moves  :command  :h help";
+        "Arrows move  a-h,1-8 jump  Enter/click place  :v view moves  :command  "
+        ":h help";
     Screen s;
     s.state = a->have_game ? &a->game : NULL;
     s.cursor = a->cursor;
@@ -36,7 +42,8 @@ Screen app_screen(const App *a, const char *prompt, const char *text)
     return s;
 }
 
-/* Maps a screen cell to a board square. False if the cell is not on the board. */
+/* Maps a screen cell to a board square. False if the cell is not on the board.
+ */
 bool screen_to_cell(int row, int col, Position *out)
 {
     const int r = row - BOARD_TOP;
@@ -84,20 +91,24 @@ static const char *mode_contextual_hint(UiMode mode)
 {
     switch (mode) {
     case UI_MODE_WELCOME:
-        return "Commands: :n [p1] [p2] [w] | :l <file> | :v [file] | :s <files> | :h help | :q quit";
+        return "Commands: :n [p1] [p2] [w] | :l <file> | :v [file] | :s <files> | "
+               ":h help | :q quit";
 
     case UI_MODE_COMMAND_INPUT:
         return "Input: Enter execute | Backspace edit | Esc cancel";
 
     case UI_MODE_ACTIVE_PLAY:
-        return "Play: Arrows move | a-h,1-8 jump | Enter/Click place | :v view moves | :t hints | :w <file> save";
+        return "Play: Arrows move | a-h,1-8 jump | Enter/Click place | :v view "
+               "moves | :t hints | :w <file> save";
 
     case UI_MODE_REPLAY:
-        return "Replay: Left back | Right/Space forward | 0-60 + Enter jump | q/Esc exit";
+        return "Replay: Left back | Right/Space forward | 0-60 + Enter jump | "
+               "q/Esc exit";
 
     case UI_MODE_POST_GAME:
     default:
-        return "Session: :n new game | :w <file> save | :l <file> load | :v [file] view | :s <files> stats | :q quit";
+        return "Session: :n new game | :w <file> save | :l <file> load | :v [file] "
+               "view | :s <files> stats | :q quit";
     }
 }
 
@@ -106,9 +117,8 @@ static const char *mode_contextual_hint(UiMode mode)
  * rows above the board always occupy exactly 1 terminal row (keeping
  * BOARD_TOP == 3 invariant for mouse click alignment).
  */
-static void append_single_line(char *frame, size_t frame_size,
-                               const char *prefix_style, const char *text,
-                               const char *suffix_style, const char *eol,
+static void append_single_line(char *frame, size_t frame_size, const char *prefix_style,
+                               const char *text, const char *suffix_style, const char *eol,
                                int max_cols, int *rows_left)
 {
     if (rows_left && *rows_left <= 0) {
@@ -116,12 +126,8 @@ static void append_single_line(char *frame, size_t frame_size,
     }
 
     int usable = (max_cols > 4) ? (max_cols - 3) : 1;
-    append_fmt(frame, frame_size, "  %s%.*s%s%s\n",
-               prefix_style,
-               usable,
-               text ? text : "",
-               suffix_style,
-               eol);
+    append_fmt(frame, frame_size, "  %s%.*s%s%s\n", prefix_style, usable, text ? text : "",
+               suffix_style, eol);
 
     if (rows_left) {
         (*rows_left)--;
@@ -134,11 +140,9 @@ static void append_single_line(char *frame, size_t frame_size,
  * Never exceeds rows_left remaining terminal rows so the viewport never
  * scrolls off the top of the screen.
  */
-int cli_append_wrapped_line(char *frame, size_t frame_size,
-                            const char *prefix_style, const char *text,
-                            const char *suffix_style, const char *eol,
-                            int max_cols, int indent_spaces,
-                            int *rows_left, bool trailing_newline)
+int cli_append_wrapped_line(char *frame, size_t frame_size, const char *prefix_style,
+                            const char *text, const char *suffix_style, const char *eol,
+                            int max_cols, int indent_spaces, int *rows_left, bool trailing_newline)
 {
     if (rows_left && *rows_left <= 0) {
         return 0;
@@ -172,8 +176,7 @@ int cli_append_wrapped_line(char *frame, size_t frame_size,
         if (*cursor == '\n') {
             cursor++;
             bool more = (*cursor != '\0') && (!rows_left || *rows_left > 1);
-            append_fmt(frame, frame_size, "%s%s",
-                       eol, (more || trailing_newline) ? "\n" : "");
+            append_fmt(frame, frame_size, "%s%s", eol, (more || trailing_newline) ? "\n" : "");
             if (rows_left) {
                 (*rows_left)--;
             }
@@ -199,8 +202,7 @@ int cli_append_wrapped_line(char *frame, size_t frame_size,
         }
 
         /* Break at the last space before the column limit if a word overflows */
-        if (cursor[len] != '\0' && cursor[len] != '\n' &&
-            cursor[len] != ' ' && last_space > 0) {
+        if (cursor[len] != '\0' && cursor[len] != '\n' && cursor[len] != ' ' && last_space > 0) {
             len = last_space;
         }
 
@@ -213,14 +215,8 @@ int cli_append_wrapped_line(char *frame, size_t frame_size,
         }
 
         bool has_more = (*next != '\0') && (!rows_left || *rows_left > 1);
-        append_fmt(frame, frame_size, "%*s%s%.*s%s%s%s",
-                   current_indent, "",
-                   prefix_style,
-                   len,
-                   cursor,
-                   suffix_style,
-                   eol,
-                   (has_more || trailing_newline) ? "\n" : "");
+        append_fmt(frame, frame_size, "%*s%s%.*s%s%s%s", current_indent, "", prefix_style, len,
+                   cursor, suffix_style, eol, (has_more || trailing_newline) ? "\n" : "");
 
         if (rows_left) {
             (*rows_left)--;
@@ -238,8 +234,7 @@ int cli_append_wrapped_line(char *frame, size_t frame_size,
  * with the rest of the UI text (`  ` left margin) so typing long arguments
  * never wraps onto a second line and shifts the layout.
  */
-static void append_prompt_row(char *frame, size_t frame_size,
-                              const Screen *screen, const char *eol,
+static void append_prompt_row(char *frame, size_t frame_size, const Screen *screen, const char *eol,
                               int max_cols, int *rows_left)
 {
     if (rows_left && *rows_left <= 0) {
@@ -263,24 +258,15 @@ static void append_prompt_row(char *frame, size_t frame_size,
             visible_text = text + (text_len - text_budget);
         }
 
-        append_fmt(frame, frame_size, "  %s%s%s%s%s_%s%s\n",
-                   cli_style_str(SGR_TAG),
-                   prompt,
-                   cli_style_str(SGR_RESET),
-                   visible_text,
-                   cli_style_str(SGR_HINT),
-                   cli_style_str(SGR_RESET),
-                   eol);
+        append_fmt(frame, frame_size, "  %s%s%s%s%s_%s%s\n", cli_style_str(SGR_TAG), prompt,
+                   cli_style_str(SGR_RESET), visible_text, cli_style_str(SGR_HINT),
+                   cli_style_str(SGR_RESET), eol);
     } else if (screen->tag) {
         append_fmt(frame, frame_size, "  %sReplay mode active (press q or Esc to exit)%s%s\n",
-                   cli_style_str(SGR_DIM),
-                   cli_style_str(SGR_RESET),
-                   eol);
+                   cli_style_str(SGR_DIM), cli_style_str(SGR_RESET), eol);
     } else {
         append_fmt(frame, frame_size, "  %sPress ':' to enter a command%s%s\n",
-                   cli_style_str(SGR_DIM),
-                   cli_style_str(SGR_RESET),
-                   eol);
+                   cli_style_str(SGR_DIM), cli_style_str(SGR_RESET), eol);
     }
 
     if (rows_left) {
@@ -292,24 +278,19 @@ static void append_prompt_row(char *frame, size_t frame_size,
  * Format a single board square (piece, legal-move hint, last-move highlight,
  * and cursor indicator) and append it to the in-memory frame buffer.
  */
-static void append_cell(char *frame, size_t frame_size, const GameState *game,
-                        const Screen *screen,
+static void append_cell(char *frame, size_t frame_size, const GameState *game, const Screen *screen,
                         bool legal[BOARD_SIZE][BOARD_SIZE], int row, int col)
 {
     const CellState cell = game->board[row][col];
 
     const bool cursor_is_here =
-        screen->show_cursor &&
-        screen->cursor.row == row &&
-        screen->cursor.col == col;
+        screen->show_cursor && screen->cursor.row == row && screen->cursor.col == col;
 
-    const bool is_last_move =
-        game->move_count > 0 &&
-        game->history[game->move_count - 1].pos.row == row &&
-        game->history[game->move_count - 1].pos.col == col;
+    const bool is_last_move = game->move_count > 0 &&
+                              game->history[game->move_count - 1].pos.row == row &&
+                              game->history[game->move_count - 1].pos.col == col;
 
-    const char *background =
-        cli_style_str(is_last_move ? SGR_BG_LAST : SGR_BG_BOARD);
+    const char *background = cli_style_str(is_last_move ? SGR_BG_LAST : SGR_BG_BOARD);
 
     const char *foreground = cli_style_str(SGR_DIM);
     char symbol = '.';
@@ -328,11 +309,8 @@ static void append_cell(char *frame, size_t frame_size, const GameState *game,
     if (!cli_use_color() && cursor_is_here) {
         append_fmt(frame, frame_size, "[%c]", symbol);
     } else {
-        append_fmt(frame, frame_size, "%s%s%s %c %s",
-                   background,
-                   cursor_is_here ? cli_style_str(SGR_INVERSE) : "",
-                   foreground,
-                   symbol,
+        append_fmt(frame, frame_size, "%s%s%s %c %s", background,
+                   cursor_is_here ? cli_style_str(SGR_INVERSE) : "", foreground, symbol,
                    cli_style_str(SGR_RESET));
     }
 }
@@ -348,20 +326,17 @@ static void describe_result(const GameState *game, char *output, size_t output_s
 
     switch (get_game_result(game)) {
     case RESULT_BLACK_WIN:
-        snprintf(output, output_size, "%s (Black) wins %d-%d",
-                 player_name(game, PLAYER_BLACK),
+        snprintf(output, output_size, "%s (Black) wins %d-%d", player_name(game, PLAYER_BLACK),
                  black_pieces, white_pieces);
         break;
 
     case RESULT_WHITE_WIN:
-        snprintf(output, output_size, "%s (White) wins %d-%d",
-                 player_name(game, PLAYER_WHITE),
+        snprintf(output, output_size, "%s (White) wins %d-%d", player_name(game, PLAYER_WHITE),
                  white_pieces, black_pieces);
         break;
 
     default:
-        snprintf(output, output_size, "tie %d-%d",
-                 black_pieces, white_pieces);
+        snprintf(output, output_size, "tie %d-%d", black_pieces, white_pieces);
         break;
     }
 }
@@ -388,30 +363,23 @@ void cli_flush_terminal_frame(const char *frame)
  * (screen->state == NULL), grouping the status and command prompt right with
  * the reference content so all text sits cohesively in one place.
  */
-static void render_welcome_screen(char *frame, size_t frame_size,
-                                  const Screen *screen, const char *eol,
-                                  int cols, int rows)
+static void render_welcome_screen(char *frame, size_t frame_size, const Screen *screen,
+                                  const char *eol, int cols, int rows)
 {
     int total_rows = (rows > 6) ? rows : 6;
     const bool spacious = (total_rows >= 25 && cols >= 72);
 
     /* Reserve 4 rows for Status + Prompt + Hint so the interactive command
-     * line never overflows short terminals. */
+   * line never overflows short terminals. */
     int body_rows = total_rows - 4;
     int title_width = (cols > 1) ? (cols - 1) : DEFAULT_TERM_COLS;
 
     /* Row 0: Full-width Title Bar */
-    append_fmt(frame, frame_size, "%s%-*s%s%s\n",
-               cli_style_str(SGR_TITLE),
-               title_width,
-               "  OTHELLO",
-               cli_style_str(SGR_RESET),
-               eol);
+    append_fmt(frame, frame_size, "%s%-*s%s%s\n", cli_style_str(SGR_TITLE), title_width,
+               "  OTHELLO", cli_style_str(SGR_RESET), eol);
     body_rows--;
 
-    cli_append_wrapped_line(frame, frame_size,
-                            cli_style_str(SGR_LABEL),
-                            "Welcome to Othello!",
+    cli_append_wrapped_line(frame, frame_size, cli_style_str(SGR_LABEL), "Welcome to Othello!",
                             cli_style_str(SGR_RESET), eol, cols, 0, &body_rows, true);
 
     if (spacious && body_rows > 1) {
@@ -420,69 +388,59 @@ static void render_welcome_screen(char *frame, size_t frame_size,
     }
 
     /* Mode 1: Session & File Commands */
-    cli_append_wrapped_line(frame, frame_size,
-                            cli_style_str(SGR_TAG),
-                            "[1] SESSION COMMANDS (Any Mode)",
-                            cli_style_str(SGR_RESET), eol, cols, 0, &body_rows, true);
-    cli_append_wrapped_line(frame, frame_size, "",
-                            "  :n [p1] [p2] [w]  New game ('w' = P1 White)",
+    cli_append_wrapped_line(frame, frame_size, cli_style_str(SGR_TAG),
+                            "[1] SESSION COMMANDS (Any Mode)", cli_style_str(SGR_RESET), eol, cols,
+                            0, &body_rows, true);
+    cli_append_wrapped_line(frame, frame_size, "", "  :n [p1] [p2] [w]  New game ('w' = P1 White)",
                             "", eol, cols, 4, &body_rows, true);
+    cli_append_wrapped_line(frame, frame_size, "", "  :l <file>         Load saved game", "", eol,
+                            cols, 4, &body_rows, true);
     cli_append_wrapped_line(frame, frame_size, "",
-                            "  :l <file>         Load saved game",
-                            "", eol, cols, 4, &body_rows, true);
+                            "  :v [file]         View current or saved game moves", "", eol, cols,
+                            4, &body_rows, true);
     cli_append_wrapped_line(frame, frame_size, "",
-                            "  :v [file]         View current or saved game moves",
-                            "", eol, cols, 4, &body_rows, true);
-    cli_append_wrapped_line(frame, frame_size, "",
-                            "  :s <f1> [f2...]   Win/loss stats across files",
-                            "", eol, cols, 4, &body_rows, true);
-    cli_append_wrapped_line(frame, frame_size, "",
-                            "  :h                Show full command help",
-                            "", eol, cols, 4, &body_rows, true);
-    cli_append_wrapped_line(frame, frame_size, "",
-                            "  :q                Quit Othello",
-                            "", eol, cols, 4, &body_rows, true);
+                            "  :s <f1> [f2...]   Win/loss stats across files", "", eol, cols, 4,
+                            &body_rows, true);
+    cli_append_wrapped_line(frame, frame_size, "", "  :h                Show full command help", "",
+                            eol, cols, 4, &body_rows, true);
+    cli_append_wrapped_line(frame, frame_size, "", "  :q                Quit Othello", "", eol,
+                            cols, 4, &body_rows, true);
 
     if (spacious) {
         if (body_rows > 1) {
             append_fmt(frame, frame_size, "%s\n", eol);
             body_rows--;
         }
-        cli_append_wrapped_line(frame, frame_size,
-                                cli_style_str(SGR_TAG),
-                                "[2] BOARD PLAY MODE (Active Game)",
-                                cli_style_str(SGR_RESET), eol, cols, 0, &body_rows, true);
+        cli_append_wrapped_line(frame, frame_size, cli_style_str(SGR_TAG),
+                                "[2] BOARD PLAY MODE (Active Game)", cli_style_str(SGR_RESET), eol,
+                                cols, 0, &body_rows, true);
         cli_append_wrapped_line(frame, frame_size, "",
-                                "  Arrow keys        Move cursor on 8x8 board",
+                                "  Arrow keys        Move cursor on 8x8 board", "", eol, cols, 4,
+                                &body_rows, true);
+        cli_append_wrapped_line(frame, frame_size, "", "  a-h, 1-8          Jump to column or row",
+                                "", eol, cols, 4, &body_rows, true);
+        cli_append_wrapped_line(frame, frame_size, "", "  Enter / Click     Place piece on square",
                                 "", eol, cols, 4, &body_rows, true);
         cli_append_wrapped_line(frame, frame_size, "",
-                                "  a-h, 1-8          Jump to column or row",
-                                "", eol, cols, 4, &body_rows, true);
-        cli_append_wrapped_line(frame, frame_size, "",
-                                "  Enter / Click     Place piece on square",
-                                "", eol, cols, 4, &body_rows, true);
-        cli_append_wrapped_line(frame, frame_size, "",
-                                "  :t                Toggle legal-move hints (*)",
-                                "", eol, cols, 4, &body_rows, true);
-        cli_append_wrapped_line(frame, frame_size, "",
-                                "  :w <file>         Save current game",
-                                "", eol, cols, 4, &body_rows, true);
+                                "  :t                Toggle legal-move hints (*)", "", eol, cols, 4,
+                                &body_rows, true);
+        cli_append_wrapped_line(frame, frame_size, "", "  :w <file>         Save current game", "",
+                                eol, cols, 4, &body_rows, true);
 
         if (body_rows > 1) {
             append_fmt(frame, frame_size, "%s\n", eol);
             body_rows--;
         }
-        cli_append_wrapped_line(frame, frame_size,
-                                cli_style_str(SGR_TAG),
-                                "[3] COMMAND INPUT (After ':')",
-                                cli_style_str(SGR_RESET), eol, cols, 0, &body_rows, true);
+        cli_append_wrapped_line(frame, frame_size, cli_style_str(SGR_TAG),
+                                "[3] COMMAND INPUT (After ':')", cli_style_str(SGR_RESET), eol,
+                                cols, 0, &body_rows, true);
         cli_append_wrapped_line(frame, frame_size, "",
-                                "  Enter execute  |  Backspace edit  |  Esc cancel",
-                                "", eol, cols, 4, &body_rows, true);
+                                "  Enter execute  |  Backspace edit  |  Esc cancel", "", eol, cols,
+                                4, &body_rows, true);
     } else {
-        cli_append_wrapped_line(frame, frame_size,
-                                cli_style_str(SGR_TAG),
-                                "[2] PLAY: Arrows, a-h/1-8, Enter/Click, :v view, :t hints, :w <file> save",
+        cli_append_wrapped_line(frame, frame_size, cli_style_str(SGR_TAG),
+                                "[2] PLAY: Arrows, a-h/1-8, Enter/Click, :v view, "
+                                ":t hints, :w <file> save",
                                 cli_style_str(SGR_RESET), eol, cols, 2, &body_rows, true);
     }
 
@@ -491,27 +449,26 @@ static void render_welcome_screen(char *frame, size_t frame_size,
         body_rows--;
     }
 
-    /* Interactive Status + Command Line + Shortcut Bar grouped directly with text */
+    /* Interactive Status + Command Line + Shortcut Bar grouped directly with text
+   */
     int footer_rows = 4;
 
     if (screen->status && screen->status[0] != '\0') {
-        cli_append_wrapped_line(frame, frame_size,
-                                cli_style_str(screen->status_error ? SGR_ERROR : SGR_OK),
-                                screen->status,
-                                cli_style_str(SGR_RESET), eol, cols, 0, &footer_rows, true);
+        cli_append_wrapped_line(
+            frame, frame_size, cli_style_str(screen->status_error ? SGR_ERROR : SGR_OK),
+            screen->status, cli_style_str(SGR_RESET), eol, cols, 0, &footer_rows, true);
     } else {
-        cli_append_wrapped_line(frame, frame_size,
-                                cli_style_str(SGR_OK),
+        cli_append_wrapped_line(frame, frame_size, cli_style_str(SGR_OK),
                                 "Type :n for a new game, :h for help, :q to quit.",
                                 cli_style_str(SGR_RESET), eol, cols, 0, &footer_rows, true);
     }
 
     append_prompt_row(frame, frame_size, screen, eol, cols, &footer_rows);
 
-    cli_append_wrapped_line(frame, frame_size,
-                            cli_style_str(SGR_DIM),
-                            mode_contextual_hint(screen->input_prompt ? UI_MODE_COMMAND_INPUT : UI_MODE_WELCOME),
-                            cli_style_str(SGR_RESET), eol, cols, 0, &footer_rows, false);
+    cli_append_wrapped_line(
+        frame, frame_size, cli_style_str(SGR_DIM),
+        mode_contextual_hint(screen->input_prompt ? UI_MODE_COMMAND_INPUT : UI_MODE_WELCOME),
+        cli_style_str(SGR_RESET), eol, cols, 0, &footer_rows, false);
 }
 
 /*
@@ -546,33 +503,29 @@ void render(const Screen *screen)
 
     /* Row 0: Full-width Title Bar */
     snprintf(message, sizeof message, "  OTHELLO    %s (X)  vs  %s (O)",
-             player_name(game, PLAYER_BLACK),
-             player_name(game, PLAYER_WHITE));
-    append_fmt(frame, sizeof frame, "%s%-*s%s%s\n",
-               cli_style_str(SGR_TITLE), title_width, message, cli_style_str(SGR_RESET), eol);
+             player_name(game, PLAYER_BLACK), player_name(game, PLAYER_WHITE));
+    append_fmt(frame, sizeof frame, "%s%-*s%s%s\n", cli_style_str(SGR_TITLE), title_width, message,
+               cli_style_str(SGR_RESET), eol);
     rows_left--;
 
-    /* Row 1: Single-line Turn / Replay / Game-Over Banner (keeps BOARD_TOP == 3) */
+    /* Row 1: Single-line Turn / Replay / Game-Over Banner (keeps BOARD_TOP == 3)
+   */
     if (screen->tag) {
         snprintf(message, sizeof message, "%s  (Read-Only Replay)", screen->tag);
-        append_single_line(frame, sizeof frame,
-                           cli_style_str(SGR_TAG), message,
+        append_single_line(frame, sizeof frame, cli_style_str(SGR_TAG), message,
                            cli_style_str(SGR_RESET), eol, cols, &rows_left);
     } else if (is_game_over(game)) {
         char result_text[96];
         describe_result(game, result_text, sizeof result_text);
         snprintf(message, sizeof message, "GAME OVER: %s  (:w <file> save | :n new | :q quit)",
                  result_text);
-        append_single_line(frame, sizeof frame,
-                           cli_style_str(SGR_TAG), message,
+        append_single_line(frame, sizeof frame, cli_style_str(SGR_TAG), message,
                            cli_style_str(SGR_RESET), eol, cols, &rows_left);
     } else {
         snprintf(message, sizeof message, "Turn: %s (%s)   [%s]",
-                 player_name(game, game->current_turn),
-                 color_name(game->current_turn),
+                 player_name(game, game->current_turn), color_name(game->current_turn),
                  screen->hints ? "Hints ON (*)" : "Hints OFF (:t)");
-        append_single_line(frame, sizeof frame,
-                           "", message, "", eol, cols, &rows_left);
+        append_single_line(frame, sizeof frame, "", message, "", eol, cols, &rows_left);
     }
 
     /* Row 2: Column Headers (fixed BOARD_LEFT = 3 for mouse alignment) */
@@ -580,13 +533,13 @@ void render(const Screen *screen)
     append_fmt(frame, sizeof frame, "   ");
 
     for (int col = 0; col < BOARD_SIZE; col++) {
-        append_fmt(frame, sizeof frame, "%s %c %s",
-                   cli_style_str(SGR_LABEL), 'A' + col, cli_style_str(SGR_RESET));
+        append_fmt(frame, sizeof frame, "%s %c %s", cli_style_str(SGR_LABEL), 'A' + col,
+                   cli_style_str(SGR_RESET));
     }
 
     if (show_history_pane) {
-        append_fmt(frame, sizeof frame, "   %sMoves%s%s\n",
-                   cli_style_str(SGR_LABEL), cli_style_str(SGR_RESET), eol);
+        append_fmt(frame, sizeof frame, "   %sMoves%s%s\n", cli_style_str(SGR_LABEL),
+                   cli_style_str(SGR_RESET), eol);
     } else {
         append_fmt(frame, sizeof frame, "%s\n", eol);
     }
@@ -599,8 +552,7 @@ void render(const Screen *screen)
     }
 
     const GameState *replay_full_game = cli_get_replay_game();
-    const GameState *history_game =
-        (screen->tag && replay_full_game) ? replay_full_game : game;
+    const GameState *history_game = (screen->tag && replay_full_game) ? replay_full_game : game;
     const int total_history_moves = history_game->move_count;
     const int active_history_idx = game->move_count - 1;
 
@@ -608,8 +560,8 @@ void render(const Screen *screen)
     if (total_history_moves > HISTORY_ROWS) {
         if (screen->tag && replay_full_game) {
             const int anchor = (active_history_idx >= 0) ? active_history_idx : 0;
-            first_history_row = clamp_int(anchor - HISTORY_ROWS / 2,
-                                          0, total_history_moves - HISTORY_ROWS);
+            first_history_row =
+                clamp_int(anchor - HISTORY_ROWS / 2, 0, total_history_moves - HISTORY_ROWS);
         } else {
             first_history_row = total_history_moves - HISTORY_ROWS;
         }
@@ -617,12 +569,11 @@ void render(const Screen *screen)
 
     /* Rows 3..10: 8x8 Board Grid + Optional Right-Hand Move History */
     for (int row = 0; row < BOARD_SIZE; row++) {
-        append_fmt(frame, sizeof frame, "%s %d %s",
-                   cli_style_str(SGR_LABEL), row + 1, cli_style_str(SGR_RESET));
+        append_fmt(frame, sizeof frame, "%s %d %s", cli_style_str(SGR_LABEL), row + 1,
+                   cli_style_str(SGR_RESET));
 
         for (int col = 0; col < BOARD_SIZE; col++) {
-            append_cell(frame, sizeof frame, game, screen,
-                        legal_moves, row, col);
+            append_cell(frame, sizeof frame, game, screen, legal_moves, row, col);
         }
 
         if (show_history_pane) {
@@ -634,16 +585,14 @@ void render(const Screen *screen)
                 char square[3];
                 const bool is_current_move = (history_index == active_history_idx);
                 const bool is_future_step = (history_index > active_history_idx);
-                const char *entry_style = is_current_move ? cli_style_str(SGR_TAG)
-                                        : (is_future_step ? cli_style_str(SGR_DIM) : "");
+                const char *entry_style = is_current_move
+                                              ? cli_style_str(SGR_TAG)
+                                              : (is_future_step ? cli_style_str(SGR_DIM) : "");
 
                 position_to_string(history_game->history[history_index].pos, square);
 
-                append_fmt(frame, sizeof frame, "%s%2d. %-5s %s%s",
-                           entry_style,
-                           history_index + 1,
-                           color_name(history_game->history[history_index].player),
-                           square,
+                append_fmt(frame, sizeof frame, "%s%2d. %-5s %s%s", entry_style, history_index + 1,
+                           color_name(history_game->history[history_index].player), square,
                            entry_style[0] != '\0' ? cli_style_str(SGR_RESET) : "");
             }
         }
@@ -665,19 +614,19 @@ void render(const Screen *screen)
         int white_pieces;
         count_pieces(game, &black_pieces, &white_pieces);
 
-        snprintf(message, sizeof message, "Black X: %d   White O: %d   Moves: %d/%d",
-                 black_pieces, white_pieces, game->move_count, MAX_MOVES);
-        cli_append_wrapped_line(frame, sizeof frame, "", message, "", eol, cols, 0, &body_budget, true);
+        snprintf(message, sizeof message, "Black X: %d   White O: %d   Moves: %d/%d", black_pieces,
+                 white_pieces, game->move_count, MAX_MOVES);
+        cli_append_wrapped_line(frame, sizeof frame, "", message, "", eol, cols, 0, &body_budget,
+                                true);
     }
 
     int footer_rows = 3 + body_budget;
 
     /* Status / Feedback Line */
     if (screen->status && screen->status[0] != '\0') {
-        cli_append_wrapped_line(frame, sizeof frame,
-                                cli_style_str(screen->status_error ? SGR_ERROR : SGR_OK),
-                                screen->status,
-                                cli_style_str(SGR_RESET), eol, cols, 0, &footer_rows, true);
+        cli_append_wrapped_line(
+            frame, sizeof frame, cli_style_str(screen->status_error ? SGR_ERROR : SGR_OK),
+            screen->status, cli_style_str(SGR_RESET), eol, cols, 0, &footer_rows, true);
     } else if (footer_rows > 2) {
         append_fmt(frame, sizeof frame, "%s\n", eol);
         footer_rows--;
@@ -687,9 +636,7 @@ void render(const Screen *screen)
     append_prompt_row(frame, sizeof frame, screen, eol, cols, &footer_rows);
 
     /* Mode-Contextual Hint Row (no trailing '\n' so bottom edge never scrolls) */
-    cli_append_wrapped_line(frame, sizeof frame,
-                            cli_style_str(SGR_DIM),
-                            mode_contextual_hint(mode),
+    cli_append_wrapped_line(frame, sizeof frame, cli_style_str(SGR_DIM), mode_contextual_hint(mode),
                             cli_style_str(SGR_RESET), eol, cols, 0, &footer_rows, false);
 
     cli_flush_terminal_frame(frame);

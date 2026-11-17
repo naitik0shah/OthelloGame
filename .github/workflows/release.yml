@@ -1,0 +1,49 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: othello-windows-x86_64.exe
+            bin: build/Release/othello.exe
+          - os: ubuntu-latest
+            artifact: othello-linux-x86_64
+            bin: build/othello
+          - os: macos-latest
+            artifact: othello-macos-universal
+            bin: build/othello
+            cmake_flags: -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure & Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake_flags }}
+          cmake --build build --config Release
+
+      - name: Run Tests
+        run: ctest --test-dir build --output-on-failure -C Release
+
+      - name: Stage Artifact
+        shell: bash
+        run: cp "${{ matrix.bin }}" "${{ matrix.artifact }}"
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.artifact }}
+          generate_release_notes: true

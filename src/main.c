@@ -1,9 +1,15 @@
 #include "common.h"
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-int main(void) {
+int main(void)
+{
     static App app;
     app.hints = true;
-    app.cursor = (Position){ BOARD_SIZE / 2 - 1, BOARD_SIZE / 2 - 1 };
+    app.cursor = (Position){BOARD_SIZE / 2 - 1, BOARD_SIZE / 2 - 1};
     set_status(&app, false, "Type :n for a new game, :h for help, :q to quit.");
 
     if (!term_init()) {

@@ -1,5 +1,20 @@
 #include "cli_internal.h"
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
+#ifndef _WIN32
+#define _POSIX_C_SOURCE 200809L
+#endif
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <sys/select.h>
+#include <termios.h>
+#include <unistd.h>
+#endif
 #ifndef _WIN32
 #include <sys/ioctl.h>
 #endif
@@ -10,29 +25,27 @@
  *
  * LEAVE_SCREEN reverses these settings when exiting the application.
  */
-static const char *const ENTER_SCREEN =
-    DEC_SET(1049)       /* use alternate screen */
-    DEC_RESET(12)       /* stop blinking the terminal cursor */
-    DEC_RESET(25)       /* hide the terminal cursor */
-    DEC_SET(1003)       /* report all mouse movement */
-    DEC_SET(1006)       /* use SGR mouse coordinates */
-    ANSI_CLEAR_SCREEN;  /* clear the screen */
+static const char *const ENTER_SCREEN = DEC_SET(1049) /* use alternate screen */
+    DEC_RESET(12)                                     /* stop blinking the terminal cursor */
+    DEC_RESET(25)                                     /* hide the terminal cursor */
+    DEC_SET(1003)                                     /* report all mouse movement */
+    DEC_SET(1006)                                     /* use SGR mouse coordinates */
+    ANSI_CLEAR_SCREEN;                                /* clear the screen */
 
-static const char *const LEAVE_SCREEN =
-    DEC_RESET(1003)     /* stop reporting all mouse movement */
-    DEC_RESET(1006)     /* stop SGR mouse reporting */
-    DEC_SET(25)         /* show the terminal cursor again */
-    DEC_SET(12)         /* restore cursor blinking */
-    DEC_RESET(1049)     /* return to the normal screen */
-    SGR_RESET;          /* reset text formatting and colours */
+static const char *const LEAVE_SCREEN = DEC_RESET(1003) /* stop reporting all mouse movement */
+    DEC_RESET(1006)                                     /* stop SGR mouse reporting */
+    DEC_SET(25)                                         /* show the terminal cursor again */
+    DEC_SET(12)                                         /* restore cursor blinking */
+    DEC_RESET(1049)                                     /* return to the normal screen */
+    SGR_RESET;                                          /* reset text formatting and colours */
 
 /* ASCII control and printable character boundaries */
 enum {
-    ASCII_ETX   = 0x03, /* Ctrl+C (End of Text) */
-    ASCII_BS    = '\b', /* 8:   Backspace (legacy terminals / Ctrl+H) */
-    ASCII_ESC   = 0x1B, /* 27:  Escape */
-    ASCII_SPACE = ' ',  /* 32:  First printable ASCII character */
-    ASCII_DEL   = 0x7F  /* 127: Delete (modern terminals' Backspace key) */
+    ASCII_ETX = 0x03,  /* Ctrl+C (End of Text) */
+    ASCII_BS = '\b',   /* 8:   Backspace (legacy terminals / Ctrl+H) */
+    ASCII_ESC = 0x1B,  /* 27:  Escape */
+    ASCII_SPACE = ' ', /* 32:  First printable ASCII character */
+    ASCII_DEL = 0x7F   /* 127: Delete (modern terminals' Backspace key) */
 };
 
 /* Terminal capability flags for legacy consoles and non-TTY streams */
@@ -88,7 +101,7 @@ static void detect_terminal_capabilities(bool is_tty)
     } else if (strcmp(term, "linux") == 0 || strncmp(term, "vt100", 5) == 0 ||
                strncmp(term, "vt220", 5) == 0) {
         /* Linux virtual console (tty1-tty6) and classic VT terminals lack
-         * xterm mouse reporting (1003/1006) and alternate screen (1049). */
+     * xterm mouse reporting (1003/1006) and alternate screen (1049). */
         g_use_alt_screen = false;
         g_use_mouse = false;
     }
@@ -174,7 +187,7 @@ static bool g_left_mouse_button_down = false;
 static void win32_hide_legacy_cursor(void)
 {
     if (!g_use_vt_sequences && g_console_out != INVALID_HANDLE_VALUE) {
-        CONSOLE_CURSOR_INFO hidden = { 1, FALSE };
+        CONSOLE_CURSOR_INFO hidden = {1, FALSE};
         SetConsoleCursorInfo(g_console_out, &hidden);
     }
 }
@@ -183,7 +196,7 @@ void cli_win32_prepare_legacy_frame(void)
 {
     win32_hide_legacy_cursor();
     if (g_console_out != INVALID_HANDLE_VALUE) {
-        COORD origin = { 0, 0 };
+        COORD origin = {0, 0};
         SetConsoleCursorPosition(g_console_out, origin);
     }
 }
@@ -228,7 +241,7 @@ static void win32_clear_legacy_console(void)
     if (!GetConsoleScreenBufferInfo(g_console_out, &info)) {
         return;
     }
-    COORD origin = { 0, 0 };
+    COORD origin = {0, 0};
     DWORD cells = (DWORD)info.dwSize.X * (DWORD)info.dwSize.Y;
     DWORD written = 0;
     FillConsoleOutputCharacterA(g_console_out, ' ', cells, origin, &written);
@@ -255,32 +268,29 @@ bool term_init(void)
     g_has_saved_input_mode = true;
 
     /*
-     * Ask the Windows console to send keyboard, mouse, and resize events
-     * through ReadConsoleInput().
-     */
-    if (!SetConsoleMode(
-            g_console_in,
-            ENABLE_MOUSE_INPUT | ENABLE_WINDOW_INPUT | ENABLE_EXTENDED_FLAGS)) {
+   * Ask the Windows console to send keyboard, mouse, and resize events
+   * through ReadConsoleInput().
+   */
+    if (!SetConsoleMode(g_console_in,
+                        ENABLE_MOUSE_INPUT | ENABLE_WINDOW_INPUT | ENABLE_EXTENDED_FLAGS)) {
         g_has_saved_input_mode = false;
         return false;
     }
 
     /*
-     * Enable ANSI/VT escape-sequence processing for terminal output.
-     * Older Windows console hosts (Windows 7/8/early Windows 10 conhost)
-     * do not support ENABLE_VIRTUAL_TERMINAL_PROCESSING; fall back cleanly.
-     */
+   * Enable ANSI/VT escape-sequence processing for terminal output.
+   * Older Windows console hosts (Windows 7/8/early Windows 10 conhost)
+   * do not support ENABLE_VIRTUAL_TERMINAL_PROCESSING; fall back cleanly.
+   */
     DWORD output_mode = 0;
     bool has_vt = false;
 
-    if (g_console_out != INVALID_HANDLE_VALUE &&
-        GetConsoleMode(g_console_out, &output_mode)) {
+    if (g_console_out != INVALID_HANDLE_VALUE && GetConsoleMode(g_console_out, &output_mode)) {
         g_original_console_output_mode = output_mode;
         g_has_saved_output_mode = true;
 
-        if (SetConsoleMode(
-                g_console_out,
-                output_mode | ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING)) {
+        if (SetConsoleMode(g_console_out, output_mode | ENABLE_PROCESSED_OUTPUT |
+                                              ENABLE_VIRTUAL_TERMINAL_PROCESSING)) {
             has_vt = true;
         }
 
@@ -341,14 +351,13 @@ void term_restore(void)
  */
 InputEvent term_read_event(void)
 {
-    InputEvent event = { EV_NONE, 0, 0, 0 };
+    InputEvent event = {EV_NONE, 0, 0, 0};
 
     for (;;) {
         INPUT_RECORD record;
         DWORD records_read = 0;
 
-        if (!ReadConsoleInput(g_console_in, &record, 1, &records_read) ||
-            records_read == 0) {
+        if (!ReadConsoleInput(g_console_in, &record, 1, &records_read) || records_read == 0) {
             event.kind = EV_QUIT;
             return event;
         }
@@ -357,18 +366,28 @@ InputEvent term_read_event(void)
             return event;
         }
 
-        if (record.EventType == KEY_EVENT &&
-            record.Event.KeyEvent.bKeyDown) {
+        if (record.EventType == KEY_EVENT && record.Event.KeyEvent.bKeyDown) {
             const KEY_EVENT_RECORD *key = &record.Event.KeyEvent;
             const int character = (unsigned char)key->uChar.AsciiChar;
 
             switch (key->wVirtualKeyCode) {
-            case VK_UP:     event.kind = EV_UP;    return event;
-            case VK_DOWN:   event.kind = EV_DOWN;  return event;
-            case VK_LEFT:   event.kind = EV_LEFT;  return event;
-            case VK_RIGHT:  event.kind = EV_RIGHT; return event;
-            case VK_ESCAPE: event.kind = EV_ESC;   return event;
-            default: break;
+            case VK_UP:
+                event.kind = EV_UP;
+                return event;
+            case VK_DOWN:
+                event.kind = EV_DOWN;
+                return event;
+            case VK_LEFT:
+                event.kind = EV_LEFT;
+                return event;
+            case VK_RIGHT:
+                event.kind = EV_RIGHT;
+                return event;
+            case VK_ESCAPE:
+                event.kind = EV_ESC;
+                return event;
+            default:
+                break;
             }
 
             if (character == ASCII_ETX) {
@@ -392,8 +411,7 @@ InputEvent term_read_event(void)
             const MOUSE_EVENT_RECORD *mouse = &record.Event.MouseEvent;
             const bool was_down = g_left_mouse_button_down;
 
-            g_left_mouse_button_down =
-                (mouse->dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED) != 0;
+            g_left_mouse_button_down = (mouse->dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED) != 0;
 
             event.row = mouse->dwMousePosition.Y;
             event.col = mouse->dwMousePosition.X;
@@ -403,8 +421,7 @@ InputEvent term_read_event(void)
                 return event;
             }
 
-            if (mouse->dwEventFlags == 0 &&
-                g_left_mouse_button_down && !was_down) {
+            if (mouse->dwEventFlags == 0 && g_left_mouse_button_down && !was_down) {
                 event.kind = EV_MOUSE_PRESS;
                 return event;
             }
@@ -420,11 +437,11 @@ static bool g_raw_mode = false;
 
 enum {
     ESC_SEQUENCE_TIMEOUT_MS = 50,
-    SGR_MOUSE_BUTTON_MASK   = 3,
-    SGR_MOUSE_MOTION_BIT    = 32,
-    SGR_MOUSE_WHEEL_BIT     = 64,
-    CSI_FINAL_MIN           = 0x40,
-    CSI_FINAL_MAX           = 0x7E
+    SGR_MOUSE_BUTTON_MASK = 3,
+    SGR_MOUSE_MOTION_BIT = 32,
+    SGR_MOUSE_WHEEL_BIT = 64,
+    CSI_FINAL_MIN = 0x40,
+    CSI_FINAL_MAX = 0x7E
 };
 
 void cli_win32_prepare_legacy_frame(void)
@@ -474,10 +491,7 @@ static bool input_ready(int timeout_ms)
         FD_ZERO(&input_fds);
         FD_SET(STDIN_FILENO, &input_fds);
 
-        struct timeval timeout = {
-            timeout_ms / 1000,
-            (timeout_ms % 1000) * 1000
-        };
+        struct timeval timeout = {timeout_ms / 1000, (timeout_ms % 1000) * 1000};
 
         int ready = select(STDIN_FILENO + 1, &input_fds, NULL, NULL, &timeout);
         if (ready > 0) {
@@ -528,12 +542,10 @@ bool term_init(void)
         struct termios terminal_settings = g_saved_termios;
 
         /* Read keys immediately; do not echo typed characters. */
-        terminal_settings.c_lflag &=
-            (tcflag_t)~(ICANON | ECHO | ISIG);
+        terminal_settings.c_lflag &= (tcflag_t) ~(ICANON | ECHO | ISIG);
 
         /* Do not translate Enter or consume Ctrl+S/Ctrl+Q as flow control. */
-        terminal_settings.c_iflag &=
-            (tcflag_t)~(IXON | ICRNL);
+        terminal_settings.c_iflag &= (tcflag_t) ~(IXON | ICRNL);
 
         terminal_settings.c_cc[VMIN] = 1;
         terminal_settings.c_cc[VTIME] = 0;
@@ -581,14 +593,13 @@ void term_restore(void)
  */
 static InputEvent parse_sgr_mouse(const char *sequence)
 {
-    InputEvent event = { EV_NONE, 0, 0, 0 };
+    InputEvent event = {EV_NONE, 0, 0, 0};
     int button = 0;
     int x = 0;
     int y = 0;
     char final_character = '\0';
 
-    if (sscanf(sequence, "<%d;%d;%d%c",
-               &button, &x, &y, &final_character) != 4) {
+    if (sscanf(sequence, "<%d;%d;%d%c", &button, &x, &y, &final_character) != 4) {
         return event;
     }
 
@@ -615,11 +626,16 @@ static InputEvent parse_sgr_mouse(const char *sequence)
 static EventKind arrow_kind(int final_character)
 {
     switch (final_character) {
-    case 'A': return EV_UP;
-    case 'B': return EV_DOWN;
-    case 'C': return EV_RIGHT;
-    case 'D': return EV_LEFT;
-    default:  return EV_NONE;
+    case 'A':
+        return EV_UP;
+    case 'B':
+        return EV_DOWN;
+    case 'C':
+        return EV_RIGHT;
+    case 'D':
+        return EV_LEFT;
+    default:
+        return EV_NONE;
     }
 }
 
@@ -629,7 +645,7 @@ static EventKind arrow_kind(int final_character)
  */
 InputEvent term_read_event(void)
 {
-    InputEvent event = { EV_NONE, 0, 0, 0 };
+    InputEvent event = {EV_NONE, 0, 0, 0};
     const int first_byte = read_byte();
 
     if (first_byte < 0 || first_byte == ASCII_ETX) {
@@ -649,9 +665,7 @@ InputEvent term_read_event(void)
         /* Some terminals use ESC O A/B/C/D for arrow keys (SS3). */
         if (second_byte == 'O') {
             const int final_character = read_byte();
-            event.kind = final_character < 0
-                ? EV_QUIT
-                : arrow_kind(final_character);
+            event.kind = final_character < 0 ? EV_QUIT : arrow_kind(final_character);
             return event;
         }
 

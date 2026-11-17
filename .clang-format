@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=none
+---
+Language: Cpp
+BasedOnStyle: LLVM
+Standard: c++17
+
+# Indentation & Whitespace (matches .editorconfig & VS Code)
+UseTab: Never
+IndentWidth: 4
+TabWidth: 4
+ContinuationIndentWidth: 4
+ColumnLimit: 100
+
+# Braces (Linux/K&R style: opening brace on new line for functions, same line for control blocks)
+BreakBeforeBraces: Linux
+
+# Pointers & Alignment (C-style right-aligned pointers: char *ptr, not char* ptr)
+PointerAlignment: Right
+AlignConsecutiveMacros: AcrossEmptyLines
+AlignConsecutiveAssignments: None
+AlignConsecutiveDeclarations: None
+AlignEscapedNewlines: Left
+
+# Function & Control Flow Layout
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: false
+BinPackArguments: true
+BinPackParameters: true
+
+# Includes & Comments
+SortIncludes: false
+ReflowComments: false

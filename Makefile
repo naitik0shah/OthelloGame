@@ -1,6 +1,10 @@
 CC ?= cc
 CFLAGS ?= -std=c17 -Wall -Wextra -Wpedantic -O2
 CPPFLAGS ?= -Iinclude
+GIT_VERSION := $(shell git describe --tags --always --dirty)
+ifneq ($(GIT_VERSION),)
+    CPPFLAGS += -DOTHELLO_VERSION=\"$(GIT_VERSION)\"
+endif
 BUILD_DIR := out
 CORE_SRC := src/common.c src/validation_capture.c src/cli_platform.c src/cli_render.c src/cli_commands.c src/storage.c src/stats.c src/misc.c
 CORE_OBJ := $(CORE_SRC:src/%.c=$(BUILD_DIR)/%.o)
