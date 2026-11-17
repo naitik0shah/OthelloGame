@@ -15,22 +15,22 @@
 #define DEC_SET(mode)   CSI "?" #mode "h"
 #define DEC_RESET(mode) CSI "?" #mode "l"
 
-/* SGR (Select Graphic Rendition) text attributes and colour parameters */
-#define SGR_ATTR_RESET   "0"
-#define SGR_ATTR_BOLD    "1"
-#define SGR_ATTR_DIM     "2"
-#define SGR_ATTR_INVERSE "7"
+/* SGR (Select Graphic Rendition) text attributes and colour parameters
+ * Uses strictly standard ECMA-48 codes for legacy terminal compatibility.
+ */
+#define SGR_ATTR_RESET     "0"
+#define SGR_ATTR_BOLD      "1"
+#define SGR_ATTR_DIM       "2"
+#define SGR_ATTR_UNDERLINE "4"
+#define SGR_ATTR_INVERSE   "7"
 
-#define FG_BLACK         "30"
-#define FG_RED           "31"
-#define FG_GREEN         "32"
-#define FG_YELLOW        "33"
-#define FG_CYAN          "36"
-#define FG_BRIGHT_WHITE  "97"
+#define FG_DEFAULT         "39"
+#define FG_RED             "31"
+#define FG_GREEN           "32"
+#define FG_YELLOW          "33"
+#define FG_CYAN            "36"
 
-#define BG_GREEN         "42"
-#define BG_BLUE          "44"
-#define BG_BRIGHT_YELLOW "103"
+#define BG_DEFAULT         "49"
 
 /* Cursor and erase sequences (DEC ?12l disables blink; ?25l hides cursor) */
 #define ANSI_CURSOR_HOME  CSI "H"
@@ -42,18 +42,18 @@
 
 /* Semantic UI styles */
 #define SGR_RESET    SGR(SGR_ATTR_RESET)
-#define SGR_TITLE    SGR(SGR_ATTR_BOLD ";" FG_BRIGHT_WHITE ";" BG_BLUE)
-#define SGR_LABEL    SGR(SGR_ATTR_BOLD ";" FG_CYAN)
-#define SGR_BG_BOARD SGR(BG_GREEN)
-#define SGR_BG_LAST  SGR(BG_BRIGHT_YELLOW)
-#define SGR_BLACK    SGR(SGR_ATTR_BOLD ";" FG_BLACK)
-#define SGR_WHITE    SGR(SGR_ATTR_BOLD ";" FG_BRIGHT_WHITE)
-#define SGR_HINT     SGR(SGR_ATTR_BOLD ";" FG_YELLOW)
+#define SGR_TITLE    SGR(SGR_ATTR_INVERSE ";" SGR_ATTR_BOLD)
+#define SGR_LABEL    SGR(FG_CYAN)
+#define SGR_BG_BOARD SGR(BG_DEFAULT)
+#define SGR_BG_LAST  SGR(FG_YELLOW ";" SGR_ATTR_UNDERLINE)
+#define SGR_BLACK    SGR(SGR_ATTR_BOLD ";" FG_CYAN)
+#define SGR_WHITE    SGR(SGR_ATTR_BOLD ";" FG_DEFAULT)
+#define SGR_HINT     SGR(FG_GREEN)
 #define SGR_DIM      SGR(SGR_ATTR_DIM)
 #define SGR_INVERSE  SGR(SGR_ATTR_INVERSE)
-#define SGR_ERROR    SGR(SGR_ATTR_BOLD ";" FG_RED)
-#define SGR_OK       SGR(SGR_ATTR_BOLD ";" FG_GREEN)
-#define SGR_TAG      SGR(SGR_ATTR_BOLD ";" FG_YELLOW)
+#define SGR_ERROR    SGR(FG_RED)
+#define SGR_OK       SGR(FG_GREEN)
+#define SGR_TAG      SGR(FG_YELLOW)
 
 /* Layout sizing thresholds for word-wrapping and side-by-side panes */
 enum {

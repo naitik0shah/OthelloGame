@@ -1,5 +1,5 @@
 #ifndef OTHELLO_VERSION
-#define OTHELLO_VERSION "v1.2.1"
+#define OTHELLO_VERSION "v1.2.2"
 #endif
 
 #ifndef OTHELLO_COMMON_H

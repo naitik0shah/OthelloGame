@@ -290,27 +290,29 @@ static void append_cell(char *frame, size_t frame_size, const GameState *game, c
                               game->history[game->move_count - 1].pos.row == row &&
                               game->history[game->move_count - 1].pos.col == col;
 
-    const char *background = cli_style_str(is_last_move ? SGR_BG_LAST : SGR_BG_BOARD);
-
-    const char *foreground = cli_style_str(SGR_DIM);
+    const char *style = cli_style_str(SGR_DIM);
     char symbol = '.';
 
     if (cell == CELL_BLACK) {
-        foreground = cli_style_str(SGR_BLACK);
+        style = cli_style_str(SGR_BLACK);
         symbol = 'X';
     } else if (cell == CELL_WHITE) {
-        foreground = cli_style_str(SGR_WHITE);
+        style = cli_style_str(SGR_WHITE);
         symbol = 'O';
     } else if (legal[row][col]) {
-        foreground = cli_style_str(SGR_HINT);
+        style = cli_style_str(SGR_HINT);
         symbol = '*';
+    }
+
+    if (is_last_move) {
+        style = cli_style_str(SGR_BG_LAST);
     }
 
     if (!cli_use_color() && cursor_is_here) {
         append_fmt(frame, frame_size, "[%c]", symbol);
     } else {
-        append_fmt(frame, frame_size, "%s%s%s %c %s", background,
-                   cursor_is_here ? cli_style_str(SGR_INVERSE) : "", foreground, symbol,
+        append_fmt(frame, frame_size, "%s%s%s %c %s", cli_style_str(SGR_BG_BOARD),
+                   cursor_is_here ? cli_style_str(SGR_INVERSE) : "", style, symbol,
                    cli_style_str(SGR_RESET));
     }
 }
