@@ -376,10 +376,12 @@ static void render_welcome_screen(char *frame, size_t frame_size, const Screen *
 
     /* Row 0: Full-width Title Bar */
     append_fmt(frame, frame_size, "%s%-*s%s%s\n", cli_style_str(SGR_TITLE), title_width,
-               "  OTHELLO", cli_style_str(SGR_RESET), eol);
+               "  OTHELLO " OTHELLO_VERSION, cli_style_str(SGR_RESET), eol);
     body_rows--;
 
-    cli_append_wrapped_line(frame, frame_size, cli_style_str(SGR_LABEL), "Welcome to Othello!",
+    char welcome_msg[64];
+    snprintf(welcome_msg, sizeof welcome_msg, "Welcome to Othello (%s)!", OTHELLO_VERSION);
+    cli_append_wrapped_line(frame, frame_size, cli_style_str(SGR_LABEL), welcome_msg,
                             cli_style_str(SGR_RESET), eol, cols, 0, &body_rows, true);
 
     if (spacious && body_rows > 1) {

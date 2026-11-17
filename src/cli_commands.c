@@ -410,7 +410,8 @@ void show_help(App *a)
     buf[0] = '\0';
 
     append_fmt(buf, sizeof buf, "%s%-*s%s%s\n", cli_style_str(SGR_TITLE), title_width,
-               "  OTHELLO - COMMAND & CONTROLS HELP", cli_style_str(SGR_RESET), eol);
+               "  OTHELLO " OTHELLO_VERSION " - COMMAND & CONTROLS HELP", cli_style_str(SGR_RESET),
+               eol);
     rows_left--;
 
     if (rows_left > 1) {
