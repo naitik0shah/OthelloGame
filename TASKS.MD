@@ -6,4 +6,4 @@
 | Move Validation & Legal Move Hinting | Aniruddh, Maulik |
 | Piece Capturing & Turn Management | Aarav, Nishi, Prem |
 | Game Persistence, Statistics & File Management | Manthan, Yug |
-| Integration, Testing & Miscellaneous Improvements | Naitik, Prem |
+| Integration, Testing & Miscellaneous Improvements | Prem |

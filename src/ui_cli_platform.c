@@ -1,5 +1,4 @@
 #include "common.h"
-#include <errno.h>
 
 #ifndef _WIN32
 #include <sys/ioctl.h>
