@@ -3,7 +3,6 @@
 #endif
 
 #include "cli_internal.h"
-#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>

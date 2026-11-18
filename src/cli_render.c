@@ -6,23 +6,23 @@
 #include <string.h>
 
 /*
- * High-level UI modes inferred from the Screen snapshot so that context-aware
- * instructions appear where the user needs them most.
+ * Replaces the pre-existing enum with documented UI-mode values.
  */
 typedef enum {
-    UI_MODE_WELCOME,       /* No active game loaded yet */
-    UI_MODE_COMMAND_INPUT, /* User is typing a ':' command */
-    UI_MODE_ACTIVE_PLAY,   /* Game in progress; board accepts moves */
-    UI_MODE_REPLAY,        /* Read-only replay mode (:v) */
-    UI_MODE_POST_GAME      /* Game finished */
+    UI_MODE_WELCOME,       /**< No active game has been loaded. */
+    UI_MODE_COMMAND_INPUT, /**< The user is entering a colon command. */
+    UI_MODE_ACTIVE_PLAY,   /**< The board is accepting move input. */
+    UI_MODE_REPLAY,        /**< Move history is being viewed read-only. */
+    UI_MODE_POST_GAME      /**< A loaded or completed game is over. */
 } UiMode;
 
-/*
- * ===========================================================================
- * CLI SCREEN SNAPSHOT & COORDINATE MAPPING
- * ===========================================================================
+/**
+ * Build an immutable render snapshot from application state.
+ * @param a Application state to snapshot.
+ * @param prompt Optional command prompt; NULL outside command input.
+ * @param text Optional text currently entered in the command prompt.
+ * @return Snapshot consumed by render().
  */
-
 Screen app_screen(const App *a, const char *prompt, const char *text)
 {
     static const char *const PLAY_HELP =
@@ -42,7 +42,12 @@ Screen app_screen(const App *a, const char *prompt, const char *text)
     return s;
 }
 
-/* Maps a screen cell to a board square. False if the cell is not on the board.
+/**
+ * Map a terminal mouse position to a board coordinate.
+ * @param row Terminal row containing the mouse event.
+ * @param col Terminal column containing the mouse event.
+ * @param out Receives the mapped board coordinate when successful.
+ * @return true if the row and column identify a board square; otherwise false.
  */
 bool screen_to_cell(int row, int col, Position *out)
 {
