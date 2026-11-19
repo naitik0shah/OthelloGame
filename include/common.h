@@ -99,15 +99,22 @@ typedef struct {
     char error[ERROR_TEXT_LEN];               /**< Human-readable parse error, if any. */
 } ParsedCommand;
 
-/** Aggregate statistics calculated across one or more saved games. */
+/** Result details for one completed saved game. */
 typedef struct {
-    int total_games;                           /**< Number of successfully read games. */
-    int skipped_files;                         /**< Number of unreadable or invalid files. */
-    int black_wins;                            /**< Games won by Black. */
-    int white_wins;                            /**< Games won by White. */
-    int ties;                                  /**< Games that ended in a tie. */
-    int max_score;                             /**< Largest winning or tied final piece count. */
-    char highest_scoring_player[MAX_NAME_LEN]; /**< Name associated with max_score. */
+    bool is_tie;                         /**< True when the game ended in a draw. */
+    PlayerColor winner_color;            /**< Color played by the winner. */
+    char winner_name[MAX_NAME_LEN];      /**< Name of the winner; empty for a draw. */
+    int winner_score;                    /**< Winner's final piece count. */
+    int opponent_score;                  /**< Other player's final piece count. */
+    int black_score;                     /**< Black's final piece count (used for draws). */
+    int white_score;                     /**< White's final piece count (used for draws). */
+} GameStat;
+
+/** Results of each completed game in the supplied save files. */
+typedef struct {
+    int total_games;                     /**< Number of completed games successfully read. */
+    int skipped_files;                   /**< Number of unreadable, invalid, or unfinished files. */
+    GameStat games[MAX_STAT_FILES];      /**< Individual game results in input-file order. */
 } StatsSummary;
 
 /** Fixed terminal layout constants. */
