@@ -51,8 +51,31 @@ void app_place(App *a)
 
 void app_handle_char(App *a, int ch)
 {
-    const int lc = tolower(ch);
-    if (ch == ' ')
+    const int lc = tolower((unsigned char)ch);
+
+    /* Quick save/load use uppercase keys so lowercase a-h board navigation stays intact. */
+    if (ch == 'S') {
+        if (!a->have_game) {
+            set_status(a, true, "No active game to save. Start a game first.");
+        } else {
+            const StorageStatus st = save_game(&a->game, "saved_game.othello");
+            if (st == STORAGE_OK)
+                set_status(a, false, "Game saved as saved_game.othello.");
+            else
+                set_status(a, true, "Save failed: %s.", storage_status_str(st));
+        }
+    } else if (ch == 'L') {
+        GameState loaded;
+        const StorageStatus st = load_game(&loaded, "saved_game.othello");
+        if (st == STORAGE_OK) {
+            a->game = loaded;
+            a->have_game = true;
+            a->cursor = (Position){BOARD_SIZE / 2 - 1, BOARD_SIZE / 2 - 1};
+            set_status(a, false, "Game loaded from saved_game.othello.");
+        } else {
+            set_status(a, true, "Load failed: %s.", storage_status_str(st));
+        }
+    } else if (ch == ' ')
         app_place(a);
     else if (lc >= 'a' && lc <= 'h')
         a->cursor.col = lc - 'a';
