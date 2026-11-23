@@ -3,7 +3,6 @@
 #endif
 
 #include "cli_internal.h"
-#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,6 +11,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #else
+#include <errno.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <termios.h>

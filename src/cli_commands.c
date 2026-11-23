@@ -16,6 +16,8 @@ void command_prompt(App *a);
 void run_command(App *a, const char *line);
 void show_help(App *a);
 void show_stats(App *a, const char *const paths[], int count);
+void wait_key(App *a);
+
 void view_replay(App *a, const GameState *game, int initial_step);
 
 static const GameState *g_replay_full_game = NULL;
@@ -504,74 +506,6 @@ void show_help(App *a)
     cli_flush_terminal_frame(buf);
     wait_key(a);
     set_status(a, false, "Help closed.");
-}
-
-void show_stats(App *a, const char *const paths[], int count)
-{
-    StatsSummary sum;
-    compute_stats_summary(paths, count, &sum);
-
-    static char buf[FRAME_SIZE];
-    char line[160];
-    int cols = DEFAULT_TERM_COLS;
-    int rows = DEFAULT_TERM_ROWS;
-    cli_get_terminal_size(&cols, &rows);
-
-    const char *eol = cli_use_vt_sequences() ? ANSI_CLEAR_EOL : "";
-    int rows_left = (rows > 6) ? rows : 6;
-    int title_width = (cols > 1) ? (cols - 1) : DEFAULT_TERM_COLS;
-
-    buf[0] = '\0';
-
-    append_fmt(buf, sizeof buf, "%s%-*s%s%s\n", cli_style_str(SGR_TITLE), title_width,
-               "  OTHELLO - MATCH STATISTICS", cli_style_str(SGR_RESET), eol);
-    rows_left--;
-
-    if (rows_left > 1) {
-        append_fmt(buf, sizeof buf, "%s\n", eol);
-        rows_left--;
-    }
-
-    cli_append_wrapped_line(buf, sizeof buf, cli_style_str(SGR_TAG), "[GAME STATISTICS SUMMARY]",
-                            cli_style_str(SGR_RESET), eol, cols, 0, &rows_left, true);
-
-    snprintf(line, sizeof line, "  Finished games counted : %d", sum.total_games);
-    cli_append_wrapped_line(buf, sizeof buf, "", line, "", eol, cols, 4, &rows_left, true);
-
-    snprintf(line, sizeof line,
-             "  Files skipped          : %d (unreadable, corrupt, or unfinished)",
-             sum.skipped_files);
-    cli_append_wrapped_line(buf, sizeof buf, "", line, "", eol, cols, 4, &rows_left, true);
-
-    snprintf(line, sizeof line, "  Black wins             : %d", sum.black_wins);
-    cli_append_wrapped_line(buf, sizeof buf, "", line, "", eol, cols, 4, &rows_left, true);
-
-    snprintf(line, sizeof line, "  White wins             : %d", sum.white_wins);
-    cli_append_wrapped_line(buf, sizeof buf, "", line, "", eol, cols, 4, &rows_left, true);
-
-    snprintf(line, sizeof line, "  Ties                   : %d", sum.ties);
-    cli_append_wrapped_line(buf, sizeof buf, "", line, "", eol, cols, 4, &rows_left, true);
-
-    if (sum.total_games > 0) {
-        snprintf(line, sizeof line, "  Highest score          : %d (%s)", sum.max_score,
-                 sum.highest_scoring_player);
-    } else {
-        snprintf(line, sizeof line, "  Highest score          : -");
-    }
-    cli_append_wrapped_line(buf, sizeof buf, "", line, "", eol, cols, 4, &rows_left, true);
-
-    if (rows_left > 1) {
-        append_fmt(buf, sizeof buf, "%s\n", eol);
-        rows_left--;
-    }
-
-    cli_append_wrapped_line(buf, sizeof buf, cli_style_str(SGR_OK), "Press any key to return...",
-                            cli_style_str(SGR_RESET), eol, cols, 0, &rows_left, false);
-
-    cli_flush_terminal_frame(buf);
-    wait_key(a);
-    set_status(a, false, "Statistics: %d game(s) counted, %d skipped.", sum.total_games,
-               sum.skipped_files);
 }
 
 void view_replay(App *a, const GameState *game, int initial_step)

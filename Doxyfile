@@ -1,0 +1,244 @@
+OUTPUT_DIRECTORY       = docs/doxygen
+
+# --- Scope (For poorly documented codebases) ---
+EXTRACT_ALL            = YES   # Documents everything even without existing comments
+EXTRACT_STATIC         = NO    # Hides internal helper functions from global clutter
+RECURSIVE              = YES
+INPUT                  = src include README.md
+USE_MDFILE_AS_MAINPAGE = README.md
+
+# --- Graphviz / Dot Settings ---
+HAVE_DOT               = YES
+DOT_IMAGE_FORMAT       = svg   # Vector output (crisp at any zoom)
+INTERACTIVE_SVG        = YES   # Adds pan/zoom controls directly in the HTML page
+
+# --- Taming the "Zoo" ---
+CALL_GRAPH             = YES   # Shows what a function calls
+CALLER_GRAPH           = YES   # Shows what calls this function
+MAX_DOT_GRAPH_DEPTH    = 2     # CRITICAL: Limits call chains to 2 hops (stops full-program hairballs)
+DOT_GRAPH_MAX_NODES    = 25    # Truncates overly dense graphs instead of rendering giant maps
+HIDE_UNDOC_RELATIONS   = YES   # Hides links to undocumented/trivial items
+INCLUDE_GRAPH          = YES   # Shows #include hierarchy
+INCLUDED_BY_GRAPH      = NO    # Usually redundant noise
+DIRECTORY_GRAPH        = YES
+UML_LOOK               = YES   # Cleaner, compact boxes for structs/classes
+
+# # Doxyfile for the Othello CLI project
+# #
+# # Run from the project root (the folder containing this file):
+# #     doxygen Doxyfile
+# # Output: docs/doxygen/html/index.html
+# # Warnings: doxygen_warnings.log
+
+# #---------------------------------------------------------------------------
+# # Project
+# #---------------------------------------------------------------------------
+
+# DOXYFILE_ENCODING      = UTF-8
+# PROJECT_NAME           = "Othello CLI"
+# PROJECT_NUMBER         = 
+# PROJECT_BRIEF          = "Terminal Othello game"
+# PROJECT_LOGO           = 
+# OUTPUT_DIRECTORY       = docs/doxygen
+# CREATE_SUBDIRS         = NO
+# OUTPUT_LANGUAGE        = English
+# FULL_PATH_NAMES        = NO
+# STRIP_FROM_PATH        = 
+# STRIP_FROM_INC_PATH    = 
+# SHORT_NAMES            = NO
+# TAB_SIZE               = 4
+# MARKDOWN_SUPPORT       = YES
+# AUTOLINK_SUPPORT       = YES
+# BUILTIN_STL_SUPPORT    = NO
+
+# #---------------------------------------------------------------------------
+# # What gets documented
+# #---------------------------------------------------------------------------
+
+# # Undocumented items are reported as warnings instead of being silently listed.
+# EXTRACT_ALL            = NO
+# EXTRACT_PRIVATE        = NO
+# EXTRACT_STATIC         = YES
+# EXTRACT_LOCAL_CLASSES  = YES
+# EXTRACT_ANON_NSPACES   = NO
+# HIDE_UNDOC_MEMBERS     = NO
+# HIDE_UNDOC_CLASSES     = NO
+# HIDE_FRIEND_COMPOUNDS  = NO
+# HIDE_IN_BODY_DOCS      = NO
+# INTERNAL_DOCS          = NO
+# CASE_SENSE_NAMES       = YES
+# HIDE_SCOPE_NAMES       = NO
+# SHOW_INCLUDE_FILES     = YES
+# SORT_MEMBER_DOCS       = NO
+# SORT_BRIEF_DOCS        = NO
+# SORT_GROUP_NAMES       = NO
+# SORT_BY_SCOPE_NAME     = NO
+# STRICT_PROTO_MATCHING  = NO
+# TYPEDEF_HIDES_STRUCT   = NO
+# LOOKUP_CACHE_SIZE      = 0
+
+# #---------------------------------------------------------------------------
+# # Input
+# #---------------------------------------------------------------------------
+
+# # Source code and the mainpage/flowchart file live under the project root.
+# # docs/ holds mainpage.dox. Keep generated output out of INPUT.
+# INPUT                  = . docs
+# INPUT_ENCODING         = UTF-8
+# FILE_PATTERNS          = *.c *.h *.dox
+# RECURSIVE              = YES
+# EXCLUDE                = doxygen_output build
+# EXCLUDE_SYMLINKS       = NO
+# EXCLUDE_PATTERNS       = */.git/* */build/* */doxygen_output/* */docs/html/* */docs/latex/*
+# EXCLUDE_SYMBOLS        = 
+# EXAMPLE_PATH           = 
+# EXAMPLE_PATTERNS       = *
+# EXAMPLE_RECURSIVE      = NO
+# IMAGE_PATH             = 
+# INPUT_FILTER           = 
+# FILTER_PATTERNS        = 
+# FILTER_SOURCE_FILES    = NO
+# FILTER_SOURCE_PATTERNS = 
+# USE_MDFILE_AS_MAINPAGE = 
+
+# #---------------------------------------------------------------------------
+# # Source browser
+# #---------------------------------------------------------------------------
+
+# SOURCE_BROWSER         = YES
+# INLINE_SOURCES         = NO
+# STRIP_CODE_COMMENTS    = NO
+# REFERENCED_BY_RELATION = YES
+# REFERENCES_RELATION    = YES
+# REFERENCES_LINK_SOURCE = YES
+# SOURCE_TOOLTIPS        = YES
+# USE_HTAGS              = NO
+# VERBATIM_HEADERS       = YES
+
+# #---------------------------------------------------------------------------
+# # Alphabetical index
+# #---------------------------------------------------------------------------
+
+# ALPHABETICAL_INDEX     = YES
+# IGNORE_PREFIX          = 
+
+# #---------------------------------------------------------------------------
+# # HTML output
+# #---------------------------------------------------------------------------
+
+# GENERATE_HTML          = YES
+# HTML_OUTPUT            = html
+# HTML_FILE_EXTENSION    = .html
+# HTML_HEADER            = 
+# HTML_FOOTER            = 
+# HTML_STYLESHEET        = 
+# HTML_EXTRA_STYLESHEET  = 
+# HTML_EXTRA_FILES       = 
+# HTML_COLORSTYLE        = AUTO_LIGHT
+# HTML_DYNAMIC_MENUS     = YES
+# HTML_DYNAMIC_SECTIONS  = NO
+# HTML_INDEX_NUM_ENTRIES = 100
+# GENERATE_DOCSET        = NO
+# GENERATE_HTMLHELP      = NO
+# GENERATE_TREEVIEW      = YES
+# TREEVIEW_WIDTH         = 250
+# ENUM_VALUES_PER_LINE   = 4
+# DISABLE_INDEX          = NO
+# FULL_SIDEBAR           = NO
+
+# #---------------------------------------------------------------------------
+# # Other output formats (off unless you need them)
+# #---------------------------------------------------------------------------
+
+# GENERATE_LATEX         = NO
+# GENERATE_RTF           = NO
+# GENERATE_MAN           = NO
+# GENERATE_XML           = NO
+# GENERATE_DOCBOOK       = NO
+# GENERATE_AUTOGEN_DEF   = NO
+# GENERATE_PERLMOD       = NO
+
+# #---------------------------------------------------------------------------
+# # Preprocessor
+# #---------------------------------------------------------------------------
+
+# ENABLE_PREPROCESSING   = YES
+# MACRO_EXPANSION        = NO
+# EXPAND_ONLY_PREDEF     = NO
+# SEARCH_INCLUDES        = YES
+# INCLUDE_PATH           = 
+# INCLUDE_FILE_PATTERNS  = 
+# PREDEFINED             = 
+# EXPAND_AS_DEFINED      = 
+# SKIP_FUNCTION_MACROS   = YES
+
+# #---------------------------------------------------------------------------
+# # Graphs (requires Graphviz "dot")
+# #---------------------------------------------------------------------------
+
+# # Call and caller graphs are off by default: on a project like this they
+# # produce a dense web of edges. The curated flowchart in docs/mainpage.dox
+# # shows the important path instead. Set these to YES per-function with
+# # \callgraph / \callergraph if you want a detailed graph for one function.
+# HAVE_DOT               = YES
+# DOT_NUM_THREADS        = 0
+# DOT_FONTNAME           = Helvetica
+# DOT_FONTSIZE           = 10
+# DOT_FONTPATH           = 
+# CLASS_GRAPH            = YES
+# COLLABORATION_GRAPH    = NO
+# GROUP_GRAPHS           = YES
+# UML_LOOK               = NO
+# UML_LIMIT_NUM_FIELDS   = 10
+# DOT_UML_DETAILS        = NO
+# DOT_WRAP_THRESHOLD     = 17
+# TEMPLATE_RELATIONS     = NO
+# INCLUDE_GRAPH          = YES
+# INCLUDED_BY_GRAPH      = YES
+# CALL_GRAPH             = NO
+# CALLER_GRAPH           = NO
+# GRAPHICAL_HIERARCHY    = YES
+# DIRECTORY_GRAPH        = YES
+# DIAGRAM_RENDERING      = 
+# DOT_IMAGE_FORMAT       = svg
+# INTERACTIVE_SVG        = YES
+# DOT_PATH               = 
+# DOTFILE_DIRS           = 
+# DIA_PATH               = 
+# DIAFILE_DIRS           = 
+# PLANTUML_JAR_PATH      = 
+# PLANTUML_CFG_FILE      = 
+# PLANTUML_INCLUDE_PATH  = 
+# DOT_GRAPH_MAX_NODES    = 50
+# MAX_DOT_GRAPH_DEPTH    = 3
+# DOT_TRANSPARENT        = YES
+# DOT_MULTI_TARGETS      = NO
+# GENERATE_LEGEND        = YES
+# DOT_CLEANUP            = YES
+
+# #---------------------------------------------------------------------------
+# # Warnings
+# #---------------------------------------------------------------------------
+
+# QUIET                  = NO
+# WARNINGS               = YES
+# WARN_IF_UNDOCUMENTED   = YES
+# WARN_IF_DOC_ERROR      = YES
+# WARN_IF_INCOMPLETE_DOC = YES
+# WARN_NO_PARAMDOC       = YES
+# WARN_AS_ERROR          = NO
+# WARN_FORMAT            = "$file:$line: $text"
+# WARN_LOGFILE           = doxygen_warnings.log
+
+# #---------------------------------------------------------------------------
+# # Search and misc
+# #---------------------------------------------------------------------------
+
+# SEARCHENGINE           = YES
+# SERVER_BASED_SEARCH    = NO
+# EXTERNAL_SEARCH        = NO
+# GENERATE_TODOLIST      = YES
+# GENERATE_TESTLIST      = YES
+# GENERATE_BUGLIST       = YES
+# GENERATE_DEPRECATEDLIST= YES
+# MULTILINE_CPP_IS_BRIEF = NO

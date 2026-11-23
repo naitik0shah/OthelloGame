@@ -1,5 +1,8 @@
 CC ?= cc
 CFLAGS ?= -std=c17 -Wall -Wextra -Wpedantic -O2
+STRICT_FLAGS := -Werror -Wshadow -Wconversion -Wsign-conversion -Wdouble-promotion \
+                -Wformat=2 -Wnull-dereference -Wundef -Wstrict-prototypes \
+                -Wmissing-prototypes -Wold-style-definition -Wvla
 CPPFLAGS ?= -Iinclude
 GIT_VERSION := $(shell git describe --tags --always --dirty 2>/dev/null)
 ifeq ($(GIT_VERSION),)
@@ -11,7 +14,7 @@ CORE_SRC := src/common.c src/validation_capture.c src/cli_platform.c src/cli_ren
 CORE_OBJ := $(CORE_SRC:src/%.c=$(BUILD_DIR)/%.o)
 TESTS := test_move_validation test_capture test_game_storage test_command_parser test_misc
 
-.PHONY: all clean test
+.PHONY: all clean test check
 all: $(BUILD_DIR)/othello
 
 $(BUILD_DIR):
@@ -34,6 +37,9 @@ $(BUILD_DIR)/%: tests/%.c $(CORE_OBJ) | $(BUILD_DIR)
 
 test: $(TESTS:%=$(BUILD_DIR)/%)
 	@set -e; for t in $(TESTS); do ./$(BUILD_DIR)/$$t; done
+
+check: clean
+	$(MAKE) CFLAGS="$(CFLAGS) $(STRICT_FLAGS)" all test
 
 clean:
 	rm -rf $(BUILD_DIR)/*

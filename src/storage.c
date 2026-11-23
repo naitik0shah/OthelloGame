@@ -14,7 +14,20 @@ char color_char(PlayerColor c)
 /* Writes to <path>.tmp and renames, so a failed save never leaves a truncated
  * file. */
 StorageStatus save_game(const GameState *s, const char *path)
-{
+{    
+    if (s == NULL || path == NULL)
+        return STORAGE_ERR_IO;
+
+    if (strlen(path) >= MAX_PATH_LEN)
+        return STORAGE_ERR_IO;
+
+    if (s->move_count < 0 || s->move_count > MAX_MOVES)
+        return STORAGE_ERR_FORMAT;
+
+    if (s->meta.p1_color != PLAYER_BLACK &&
+        s->meta.p1_color != PLAYER_WHITE)
+        return STORAGE_ERR_FORMAT;
+
     char tmp[MAX_PATH_LEN + 8];
     snprintf(tmp, sizeof tmp, "%s.tmp", path);
 

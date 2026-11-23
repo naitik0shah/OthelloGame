@@ -26,3 +26,6 @@ Thumbs.db
 *.swp
 *.swo
 .vscode
+
+Doxyfile.bak
+docs/doxygen
