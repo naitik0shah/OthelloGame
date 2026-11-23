@@ -101,20 +101,20 @@ typedef struct {
 
 /** Result details for one completed saved game. */
 typedef struct {
-    bool is_tie;                         /**< True when the game ended in a draw. */
-    PlayerColor winner_color;            /**< Color played by the winner. */
-    char winner_name[MAX_NAME_LEN];      /**< Name of the winner; empty for a draw. */
-    int winner_score;                    /**< Winner's final piece count. */
-    int opponent_score;                  /**< Other player's final piece count. */
-    int black_score;                     /**< Black's final piece count (used for draws). */
-    int white_score;                     /**< White's final piece count (used for draws). */
+    bool is_tie;                    /**< True when the game ended in a draw. */
+    PlayerColor winner_color;       /**< Color played by the winner. */
+    char winner_name[MAX_NAME_LEN]; /**< Name of the winner; empty for a draw. */
+    int winner_score;               /**< Winner's final piece count. */
+    int opponent_score;             /**< Other player's final piece count. */
+    int black_score;                /**< Black's final piece count (used for draws). */
+    int white_score;                /**< White's final piece count (used for draws). */
 } GameStat;
 
 /** Results of each completed game in the supplied save files. */
 typedef struct {
-    int total_games;                     /**< Number of completed games successfully read. */
-    int skipped_files;                   /**< Number of unreadable, invalid, or unfinished files. */
-    GameStat games[MAX_STAT_FILES];      /**< Individual game results in input-file order. */
+    int total_games;                /**< Number of completed games successfully read. */
+    int skipped_files;              /**< Number of unreadable, invalid, or unfinished files. */
+    GameStat games[MAX_STAT_FILES]; /**< Individual game results in input-file order. */
 } StatsSummary;
 
 /** Fixed terminal layout constants. */

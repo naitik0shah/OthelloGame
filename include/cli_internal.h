@@ -105,5 +105,6 @@ void cli_flush_terminal_frame(const char *frame);
 
 /** Return the full game currently backing replay mode, or NULL. */
 const GameState *cli_get_replay_game(void);
+void wait_key(App *a);
 
 #endif /* CLI_INTERNAL_H */
