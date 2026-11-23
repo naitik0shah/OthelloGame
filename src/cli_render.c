@@ -44,8 +44,7 @@ typedef enum {
 Screen app_screen(const App *app, const char *input_prompt, const char *input_text)
 {
     static const char *const PLAY_HELP_TEXT =
-        "Arrows move  a-h,1-8 jump  Enter/click place  :v view moves  :command  "
-        ":h help";
+        "Arrows move  a-h,1-8 jump  Enter/click place  S save  L load  :h help";
 
     Screen snapshot;
     snapshot.state = app->have_game ? &app->game : NULL;
@@ -121,15 +120,13 @@ static const char *get_mode_hint(UiMode mode)
 {
     switch (mode) {
     case UI_MODE_WELCOME:
-        return "Commands: :n [p1] [p2] [w] | :l <file> | :v [file] | :s <files> | "
-               ":h help | :q quit";
+        return "Commands: :n new game | L load saved game | :h help | :q quit";
 
     case UI_MODE_COMMAND_INPUT:
         return "Input: Enter execute | Backspace edit | Esc cancel";
 
     case UI_MODE_ACTIVE_PLAY:
-        return "Play: Arrows move | a-h,1-8 jump | Enter/Click place | :v view "
-               "moves | :t hints | :w <file> save";
+        return "Play: Arrows move | a-h,1-8 jump | Enter/Click place | S save | L load";
 
     case UI_MODE_REPLAY:
         return "Replay: Left back | Right/Space forward | 0-60 + Enter jump | "
@@ -137,8 +134,7 @@ static const char *get_mode_hint(UiMode mode)
 
     case UI_MODE_POST_GAME:
     default:
-        return "Session: :n new game | :w <file> save | :l <file> load | :v [file] "
-               "view | :s <files> stats | :q quit";
+        return "Session: :n new game | S save | L load | :v view | :s stats | :q quit";
     }
 }
 
