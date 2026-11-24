@@ -58,7 +58,13 @@ typedef struct {
 } GameState;
 
 /** Final or in-progress game outcome. */
-typedef enum { RESULT_IN_PROGRESS, RESULT_BLACK_WIN, RESULT_WHITE_WIN, RESULT_TIE } GameResult;
+typedef enum {
+    RESULT_IN_PROGRESS,
+    RESULT_BLACK_WIN,
+    RESULT_WHITE_WIN,
+    RESULT_TIE,
+    ERR_RESULT_INVALID
+} GameResult;
 
 /** Result of processing a turn after a move or pass. */
 typedef enum { TURN_SWITCHED, TURN_OPPONENT_PASSED, TURN_GAME_OVER } TurnStatus;

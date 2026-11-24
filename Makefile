@@ -12,7 +12,7 @@ CPPFLAGS += -DOTHELLO_VERSION=\"$(GIT_VERSION)\"
 BUILD_DIR := out
 CORE_SRC := src/common.c src/validation_capture.c src/cli_platform.c src/cli_render.c src/cli_commands.c src/storage.c src/stats.c src/misc.c
 CORE_OBJ := $(CORE_SRC:src/%.c=$(BUILD_DIR)/%.o)
-TESTS := test_move_validation test_capture test_game_storage test_command_parser test_misc
+TESTS := test_validation_and_capture test_game_storage test_command_parser test_misc
 
 .PHONY: all clean test check
 all: $(BUILD_DIR)/othello

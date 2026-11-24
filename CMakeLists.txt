@@ -43,7 +43,7 @@ add_executable(othello src/main.c)
 target_link_libraries(othello PRIVATE othello_core)
 
 enable_testing()
-foreach(test_name test_move_validation test_capture test_game_storage test_command_parser test_misc)
+foreach(test_name test_validation_and_capture test_game_storage test_command_parser test_misc)
     add_executable(${test_name} tests/${test_name}.c)
     target_link_libraries(${test_name} PRIVATE othello_core)
     if(MSVC)
